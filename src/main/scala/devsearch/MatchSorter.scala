@@ -10,7 +10,7 @@ object MatchSorter {
 
   def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true)(implicit sc: SparkContext): RDD[(Location, Int)] = {
     val repoRanking: RDD[(String, Double)] = if (!withRanking) sc.emptyRDD else {
-      val reposRDD = (if (!withRanking) sc.emptyRDD else sc.textFile("hdfs:///projects/devsearch/ranking/*"))
+      val reposRDD = (if (!withRanking) sc.emptyRDD else sc.textFile(Config.repoRankPath))
       val parsedRanking = reposRDD.flatMap(l => l.split(",") match {
         case Array(key, value) => List(key -> value.toDouble)
         case _ => Nil
