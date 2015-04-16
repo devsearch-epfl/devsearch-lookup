@@ -13,7 +13,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
-  "org.apache.spark" %% "spark-core" % "1.3.0"
+  "org.apache.spark" %% "spark-core" % "1.2.1"
 )
 
 parallelExecution in Test := false

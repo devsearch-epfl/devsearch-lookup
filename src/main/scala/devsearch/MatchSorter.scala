@@ -2,6 +2,7 @@ package devsearch
 
 import org.apache.spark._
 import org.apache.spark.rdd._
+import org.apache.spark.SparkContext._
 
 /**
  * Responsible for sorting all the matching files by different criteria
