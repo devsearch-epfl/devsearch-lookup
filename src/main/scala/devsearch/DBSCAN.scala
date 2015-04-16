@@ -18,7 +18,8 @@ object DBSCAN {
 
     def regionQuery(i: Int) = {
       def takeWhile(start: Int, inc: Int, p: Int => Boolean): List[Int] = {
-        if (p(points(start))) start :: takeWhile(start + inc, inc, p)
+        if (start >= 0 && start < points.length && p(points(start)))
+          start :: takeWhile(start + inc, inc, p)
         else Nil
       }
       val value = points(i)
@@ -28,28 +29,29 @@ object DBSCAN {
 
     def expandCluster(i: Int, neighbors: List[Int], c: Int) = {
       clustered += i
-      clusters(c) += i
+      clusters(c) += points(i)
 
-      var allNeighbors = neighbors.toSet
-      var j = 0
-      while (j < allNeighbors.size) {
+      var allNeighbors = neighbors
+      var n = 0
+      while (n < allNeighbors.size) {
+        val j = allNeighbors(n)
         if (!visited(j)) {
           visited += j
           val jNeighbors = regionQuery(j)
           if (jNeighbors.size >= minPoints) {
-            allNeighbors ++= jNeighbors
+            allNeighbors ++= jNeighbors.filterNot(allNeighbors.contains(_))
           }
         }
 
         if (!clustered(j)) {
-          clusters(c) += j
+          clusters(c) += points(j)
         }
 
-        j += 1
+        n += 1
       }
     }
 
-    for (i <- 0 to points.length if !visited(i)) {
+    for (i <- 0 to points.length - 1 if !visited(i)) {
       visited += i
       val neighbors = regionQuery(i)
       if (neighbors.size < minPoints)
@@ -60,6 +62,6 @@ object DBSCAN {
       }
     }
 
-    clusters.values
+    clusters.values ++ noise.map(i => Set(points(i)))
   }
 }
