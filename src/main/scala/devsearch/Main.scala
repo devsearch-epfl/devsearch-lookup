@@ -1,7 +1,6 @@
 package devsearch
 
 import org.apache.spark._
-import org.apache.spark.rdd._
 
 object Main {
   def main(args: Array[String]) {
@@ -18,7 +17,7 @@ object Main {
 
     val matchingFeatures = FeatureRetriever.get(keys)
     val matchingFeaturesByFile = matchingFeatures.groupBy { f =>
-      Location(f.user + "/" + f.repo, f.dir + "/" + f.file)
+      Location(f.user + "/" + f.repo, f.path)
     }
 
     val results = MatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
