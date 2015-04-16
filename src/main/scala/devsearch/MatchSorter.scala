@@ -40,7 +40,9 @@ object MatchSorter {
           val radius = (cluster.max - cluster.min) / 2.0 + 1 // avoid radius = 0
           val densityScore = clamp(size / radius, 0, 5) / 5.0
 
-          val finalScore = .5 * densityScore + .5 * rankingScore
+          val sizeScore = clamp(size, 0, 20) / 20.0
+
+          val finalScore = .3 * densityScore + .2 * sizeScore + .5 * rankingScore
 
           key -> finalScore
         }
