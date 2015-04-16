@@ -6,7 +6,7 @@ import org.apache.spark.rdd._
  */
 object FeatureRetriever {
   private val featuresPath = "features"
-  def get(key: String): RDD[FeatureData] = {
+  def get(keys: Seq[String]): RDD[FeatureData] = {
     // load in the features file(s) and find all matching features
     ???
   }

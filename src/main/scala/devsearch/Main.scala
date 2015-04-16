@@ -13,13 +13,13 @@ object Main {
 
     val maxNumResults = 10
 
-    if (args.length != 1) {
-      println("Missing feature key argument")
+    if (args.isEmpty) {
+      println("Missing feature key arguments")
       sys.exit(1)
     }
-    val key = args(0)
+    val keys = args
 
-    val matchingFeatures = FeatureRetriever.get(key)
+    val matchingFeatures = FeatureRetriever.get(keys)
     val matchingFeaturesByFile = matchingFeatures.groupBy(f => (f.user, f.repo, f.dir, f.file))
     val results = MatchSorter.sort(matchingFeaturesByFile).take(maxNumResults)
 
