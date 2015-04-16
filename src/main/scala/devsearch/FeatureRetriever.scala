@@ -1,6 +1,8 @@
 package devsearch
 import org.apache.spark.rdd._
 
+case class Location(repository: String, path: String)
+
 case class FeatureData(key: String, user: String, repo: String, dir: String, file: String, line: Int)
 
 /**

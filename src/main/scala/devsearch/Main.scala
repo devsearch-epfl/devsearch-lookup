@@ -7,7 +7,8 @@ object Main {
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("DevSearch Lookup")
                               .setMaster("local")
-    val spark = new SparkContext(conf)
+
+    implicit val spark = new SparkContext(conf)
 
     if (args.isEmpty) {
       println("Missing feature key arguments")
@@ -16,7 +17,10 @@ object Main {
     val keys = args
 
     val matchingFeatures = FeatureRetriever.get(keys)
-    val matchingFeaturesByFile = matchingFeatures.groupBy(f => (f.user, f.repo, f.dir, f.file))
+    val matchingFeaturesByFile = matchingFeatures.groupBy { f =>
+      Location(f.user + "/" + f.repo, f.dir + "/" + f.file)
+    }
+
     val results = MatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
 
     println(results)
