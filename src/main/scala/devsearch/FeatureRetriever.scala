@@ -27,13 +27,12 @@ object FeatureIndexParser extends RegexParsers {
  * Responsible for finding all the features that match the key
  */
 object FeatureRetriever {
-  def get(keys: Seq[String]): RDD[FeatureData] = {
+  def get(keys: Seq[String])(implicit sc: SparkContext): RDD[FeatureData] = {
 
-    val sc = new SparkContext()
     val featureIndex: RDD[FeatureData] = sc.textFile(Config.featuresPath).map( (line) => FeatureIndexParser
       .parse(FeatureIndexParser.featureEntry, line) )
-      .collect{ case e if !e.isEmpty => e.get}
+      .collect{ case e if !e.isEmpty => e.get}.cache()
 
-    return featureIndex.filter(feature => keys.contains(feature.key))
+    featureIndex.filter(feature => keys.contains(feature.key))
   }
 }

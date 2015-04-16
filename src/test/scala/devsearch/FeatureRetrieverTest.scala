@@ -1,8 +1,22 @@
 package devsearch
 
-/**
- * Created by matt on 16.04.15.
- */
-class FeatureRetrieverTest {
+import org.scalatest.{FlatSpec, Matchers}
+import utils.SparkTestUtils._
+
+class FeatureRetrieverTest extends FlatSpec with Matchers {
+
+  Config.featuresPath = "./testData/smallFeature"
+
+
+
+    "FeatureRetriever" should "return an emptyList" in withSpark(implicit sc => {
+
+      val l = FeatureRetriever.get(Seq())
+      val l2 = FeatureRetriever.get(List("variableDeclaration=rest type=devsearch.ast.PrimitiveTypes.Int$"))
+
+      assert(l.isEmpty())
+      assert(l2.count() == 2)
+    }
+  )
 
 }

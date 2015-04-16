@@ -1,7 +1,7 @@
 package devsearch
 
 object Config {
-  val featuresPath = "features"
-  val repoRankPath = "reporank"
-  val maxNumResults = 10
+  var featuresPath = "features"
+  var repoRankPath = "reporank"
+  var maxNumResults = 10
 }
