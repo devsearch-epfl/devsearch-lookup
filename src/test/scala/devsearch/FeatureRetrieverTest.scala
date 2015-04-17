@@ -14,7 +14,7 @@ class FeatureRetrieverTest extends FlatSpec with Matchers {
       val l = FeatureRetriever.get(Seq())
       val l2 = FeatureRetriever.get(List("variableDeclaration=rest type=devsearch.ast.PrimitiveTypes.Int$"))
 
-      assert(l.isEmpty())
+      assert(l.count() == 0)
       assert(l2.count() == 2)
     }
   )
