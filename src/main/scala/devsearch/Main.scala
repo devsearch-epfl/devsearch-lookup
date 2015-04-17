@@ -30,11 +30,11 @@ object Main {
 
 //    println("\n\n\n\nMatchin finished, found " + matchingFeatures.count() + " feature matches for " + matchingFeaturesByFile.count() + "\n\n\n\n")
 
-//    val results = MatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults
+//      val results = MatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
     val results = SimpleMatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
 
 //    println("\n\n\n\nResult   START ")
-    results.foreach(item => println("Result: " + item._1 + " - " + item._2))
+      results.foreach(item => println(List(item._1.repository,item._1.path,item._2).mkString(",")))
 //    println("Result   END\n\n\n\n")
 
     spark.stop()
