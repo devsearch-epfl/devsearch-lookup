@@ -7,12 +7,12 @@ import org.apache.log4j.Level
 
 object Main {
   def main(args: Array[String]) {
-
     Logger.getLogger("org").setLevel(Level.WARN)
     Logger.getLogger("akka").setLevel(Level.WARN)
 
+
     val conf = new SparkConf().setAppName("DevSearch Lookup")
-      .setMaster("local").set("spark.ui.port", "4781")
+      .set("spark.ui.port", "4781")
 
     implicit val spark = new SparkContext(conf)
 
