@@ -8,6 +8,6 @@ object NBestFinder {
       override def compare(x: (K, Double), y: (K, Double)): Int = {
         Ordering[Double].compare(x._2, y._2)
       }
-    })
+    }).sortBy(-_._2)
   }
 }

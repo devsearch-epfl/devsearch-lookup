@@ -21,9 +21,9 @@ class MatchSorterTest extends FlatSpec {
     println(results)
     val expected = Seq("file2", "file1")
 
-    assert(results.toSet == Set(
-      (Location("user2/repo2","some/dir/File2.scala"),4),
-      (Location("user1/repo1","some/other/dir/File1.scala"),10))
+    assert(results == List(
+      (Location("user2/repo2", "some/dir/File2.scala"), 4),
+      (Location("user1/repo1", "some/other/dir/File1.scala"), 10))
     )
   })
 }

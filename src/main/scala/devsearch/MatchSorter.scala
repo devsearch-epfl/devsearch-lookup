@@ -9,7 +9,7 @@ import org.apache.spark.SparkContext._
  */
 object MatchSorter {
 
-  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true)(implicit sc: SparkContext): Array[(Location, Int)] = {
+  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true, numToReturn: Int = 100)(implicit sc: SparkContext): Array[(Location, Int)] = {
     val repoRanking: RDD[(String, Double)] = if (!withRanking) sc.emptyRDD else {
       val reposRDD = (if (!withRanking) sc.emptyRDD else sc.textFile(Config.repoRankPath))
       val parsedRanking = reposRDD.flatMap(l => l.split(",") match {
@@ -24,7 +24,7 @@ object MatchSorter {
 
     def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
 
-    NBestFinder.getNBestMatches(100, groupedFeatures.map(p => p._1.repository -> (p._1.path, p._2))
+    NBestFinder.getNBestMatches(numToReturn, groupedFeatures.map(p => p._1.repository -> (p._1.path, p._2))
       .leftOuterJoin(repoRanking).flatMap { case (repository, ((path, features), rankingScoreOpt)) =>
         val location = Location(repository, path)
         val rankingScore = rankingScoreOpt getOrElse .0
