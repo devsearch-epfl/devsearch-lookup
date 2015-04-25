@@ -7,7 +7,7 @@ import org.apache.spark.SparkContext._
 /**
  * Responsible for sorting all the matching files by different criteria
  */
-object MatchSorter {
+object ComplexMatchSorter {
 
   def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true, numToReturn: Int = 100)(implicit sc: SparkContext): Array[(Location, Int)] = {
     val repoRanking: RDD[(String, Double)] = if (!withRanking) sc.emptyRDD else {

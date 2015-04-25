@@ -4,7 +4,7 @@ import org.apache.spark.SparkContext
 import org.scalatest._
 import utils.SparkTestUtils._
 
-class MatchSorterTest extends FlatSpec {
+class ComplexMatchSorterTest extends FlatSpec {
 
   def getFeaturesByLocation()(implicit sc: SparkContext) = {
     val features = List(
@@ -23,7 +23,7 @@ class MatchSorterTest extends FlatSpec {
   "MatchSorter" should "sort correctly" in withSpark(implicit sc => {
     val featuresByLocation = getFeaturesByLocation()
 
-    val results = MatchSorter.sort(featuresByLocation, withRanking = false).toList
+    val results = ComplexMatchSorter.sort(featuresByLocation, withRanking = false).toList
     println(results)
     val expected = Seq("file2", "file1")
 
@@ -36,7 +36,7 @@ class MatchSorterTest extends FlatSpec {
   it should "return only as many entries as we ask it for" in withSpark(implicit sc => {
     val featuresByLocation = getFeaturesByLocation()
 
-    val results = MatchSorter.sort(featuresByLocation, withRanking = false, numToReturn = 1).toList
+    val results = ComplexMatchSorter.sort(featuresByLocation, withRanking = false, numToReturn = 1).toList
 
     assert(results.length == 1)
   })
