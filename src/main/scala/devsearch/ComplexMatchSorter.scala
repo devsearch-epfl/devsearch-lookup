@@ -7,7 +7,7 @@ import org.apache.spark.SparkContext._
 /**
  * Responsible for sorting all the matching files by different criteria
  */
-object ComplexMatchSorter {
+object ComplexMatchSorter extends MatchSorter {
 
   def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true, numToReturn: Int = 100)(implicit sc: SparkContext): Array[(Location, Int)] = {
     val repoRanking: RDD[(String, Double)] = if (!withRanking) sc.emptyRDD else {
@@ -22,17 +22,12 @@ object ComplexMatchSorter {
       parsedRanking.map(p => p._1 -> (p._2 - minRanking) / (maxRanking - minRanking))
     }
 
-    def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
-
     NBestFinder.getNBestMatches(numToReturn, groupedFeatures.map(p => p._1.repository -> (p._1.path, p._2))
       .leftOuterJoin(repoRanking).flatMap { case (repository, ((path, features), rankingScoreOpt)) =>
         val location = Location(repository, path)
         val rankingScore = rankingScoreOpt getOrElse .0
-        
-        // TODO: Cluster epsilon should maybe depend on the language of the file?
-        //       Typically scala features will be much closer to each other than in Java...
-        val positions = features.map(_.line).toArray
-        val clusters = DBSCAN(positions, 5.0, positions.length min 3)
+
+        val clusters = cluster(features)
 
         clusters.map { cluster =>
           val key = location -> cluster.min
