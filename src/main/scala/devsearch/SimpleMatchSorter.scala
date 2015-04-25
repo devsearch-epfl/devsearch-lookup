@@ -8,13 +8,13 @@ import org.apache.spark.rdd._
  */
 object SimpleMatchSorter {
 
-  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true)(implicit sc: SparkContext): RDD[(Location, Int)] = {
+  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true)(implicit sc: SparkContext): Array[(Location, Int)] = {
 
     def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
 
 
-    // sorts by number of feature per location
-    groupedFeatures.flatMap{
+    // sorts by number of feature per location and returns 100 best matches
+    NBestFinder.getNBestMatches(100, groupedFeatures.flatMap{
       case (location, features) =>
 
         // TODO: Cluster epsilon should maybe depend on the language of the file?
@@ -36,7 +36,7 @@ object SimpleMatchSorter {
           key -> finalScore
 
         }
-    }.sortBy(-_._2).map(_._1)
+    }).map(_._1)
 
   }
 }
