@@ -1,42 +1,30 @@
 package devsearch
 
-import org.apache.spark._
-
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
+import akka.actor._
+import com.typesafe.config.ConfigFactory
+import akka.contrib.pattern.ClusterReceptionistExtension
+import akka.util.Timeout
+import scala.concurrent.duration.Duration
 
 object Main {
-  def main(args: Array[String]) {
-    Logger.getLogger("org").setLevel(Level.WARN)
-    Logger.getLogger("akka").setLevel(Level.WARN)
+  def main(args: Array[String]): Unit = {
+    if (args.isEmpty)
+      startup(Seq("2555"))
+    else
+      startup(args)
+  }
 
+  def startup(ports: Seq[String]): Unit = {
+    ports foreach { port =>
+      // Override the configuration of the port
+      val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).
+        withFallback(ConfigFactory.load())
 
-    val conf = new SparkConf().setAppName("DevSearch Lookup")
-      .set("spark.ui.port", "4781")
+      // Create an Akka system
+      val system = ActorSystem("lookupCluster", config)
+      val lookup = system.actorOf(Props[DummySearchActor], name = "lookup")
+      ClusterReceptionistExtension(system).registerService(lookup)
 
-    implicit val spark = new SparkContext(conf)
-
-
-    if (args.isEmpty) {
-      println("Missing feature key arguments")
-      sys.exit(1)
     }
-    val keys = args
-
-    val matchingFeatures = FeatureRetriever.get(keys)
-    val matchingFeaturesByFile = matchingFeatures.groupBy { f =>
-      Location(f.user + "/" + f.repo, f.path)
-    }
-
-//    println("\n\n\n\nMatchin finished, found " + matchingFeatures.count() + " feature matches for " + matchingFeaturesByFile.count() + "\n\n\n\n")
-
-//      val results = MatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
-    val results = SimpleMatchSorter.sort(matchingFeaturesByFile).take(Config.maxNumResults)
-
-//    println("\n\n\n\nResult   START ")
-      results.foreach(item => println(List(item._1.repository,item._1.path,item._2).mkString(",")))
-//    println("Result   END\n\n\n\n")
-
-    spark.stop()
   }
 }
