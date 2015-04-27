@@ -8,23 +8,19 @@ import scala.concurrent.duration.Duration
 
 object Main {
   def main(args: Array[String]): Unit = {
-    if (args.isEmpty)
-      startup(Seq("2555"))
-    else
-      startup(args)
+    val port = if (args.isEmpty) 2555 else args(0).toInt
+    run(port)
   }
 
-  def startup(ports: Seq[String]): Unit = {
-    ports foreach { port =>
-      // Override the configuration of the port
-      val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).
-        withFallback(ConfigFactory.load())
+  def run(port: Int): Unit = {
+    // Override the configuration of the port
+    val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).
+      withFallback(ConfigFactory.load())
 
-      // Create an Akka system
-      val system = ActorSystem("lookupCluster", config)
-      val lookup = system.actorOf(Props[DummySearchActor], name = "lookup")
-      ClusterReceptionistExtension(system).registerService(lookup)
-
-    }
+    // Create an Akka system
+    val system = ActorSystem("lookupCluster", config)
+    val lookup = system.actorOf(Props[DummySearchActor], name = "lookup")
+    ClusterReceptionistExtension(system).registerService(lookup)
+    system.awaitTermination()
   }
 }
