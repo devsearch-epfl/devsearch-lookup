@@ -16,7 +16,10 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-  "com.typesafe.akka" %% "akka-contrib" % akkaVersion
-  )
+  "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23"
+)
+
+Revolver.settings
 
 parallelExecution in Test := false
