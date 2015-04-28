@@ -6,21 +6,15 @@ import org.apache.spark.rdd._
 /**
  * Responsible for sorting all the matching files by different criteria
  */
-object SimpleMatchSorter {
+object SimpleMatchSorter extends MatchSorter {
 
-  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true)(implicit sc: SparkContext): RDD[(Location, Int)] = {
+  def sort(groupedFeatures: RDD[(Location, Iterable[FeatureData])], withRanking: Boolean = true, numToReturn: Int = 100)(implicit sc: SparkContext): Array[(Location, Int)] = {
 
-    def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
-
-
-    // sorts by number of feature per location
-    groupedFeatures.flatMap{
+    // sorts by number of feature per location and returns numToReturn best matches
+    NBestFinder.getNBestMatches(numToReturn, groupedFeatures.flatMap{
       case (location, features) =>
 
-        // TODO: Cluster epsilon should maybe depend on the language of the file?
-        //       Typically scala features will be much closer to each other than in Java...
-        val positions = features.map(_.line).toArray
-        val clusters = DBSCAN(positions, 5.0, positions.length min 3)
+        val clusters = cluster(features)
 
         clusters.map { cluster =>
           val key:(Location, Int) = location -> cluster.min
@@ -36,7 +30,7 @@ object SimpleMatchSorter {
           key -> finalScore
 
         }
-    }.sortBy(-_._2).map(_._1)
+    }).map(_._1)
 
   }
 }
