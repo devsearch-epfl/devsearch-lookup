@@ -13,6 +13,9 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
   Resolver.sonatypeRepo("snapshots")
 )*/
 
+// https://github.com/ReactiveMongo/ReactiveMongo#set-up-your-project-dependencies
+resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/"
+
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
