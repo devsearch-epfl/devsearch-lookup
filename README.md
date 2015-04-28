@@ -3,7 +3,7 @@ Module for performing the online search query
 
 ## Setup the database
 * Install MongoDB
-* Run the database daemon
+* Run the database daemon (if it is not already started)
  
 `mongod --dbpath some/path`
 * Get some features from the offline Spark job
