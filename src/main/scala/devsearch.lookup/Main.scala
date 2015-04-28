@@ -1,4 +1,4 @@
-package devsearch
+package devsearch.lookup
 
 import akka.actor._
 import com.typesafe.config.ConfigFactory
@@ -19,7 +19,7 @@ object Main {
 
     // Create an Akka system
     val system = ActorSystem("lookupCluster", config)
-    val lookup = system.actorOf(Props[DummySearchActor], name = "lookup")
+    val lookup = system.actorOf(Props[LookupProvider], name = "lookup")
     ClusterReceptionistExtension(system).registerService(lookup)
     system.awaitTermination()
   }
