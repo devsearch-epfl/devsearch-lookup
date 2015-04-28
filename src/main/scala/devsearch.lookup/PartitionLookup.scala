@@ -6,6 +6,10 @@ import reactivemongo.api._
 import reactivemongo.bson._
 import scala.concurrent.Future
 
+/**
+ * This actor is permanently responsible for one partition of the database. It
+ * receives requests and returns the K best matches of the partition.
+ */
 class PartitionLookup extends Actor with ActorLogging {
   import context.dispatcher
 

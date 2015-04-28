@@ -2,6 +2,10 @@ package devsearch.lookup
 
 import akka.actor._
 
+/**
+ * This actor is the main entry point for search requests. On every request it
+ * will create a new LookupMerger to execute and merge the query.
+ */
 class LookupProvider extends Actor with ActorLogging {
   log.info("Starting LookupProvider")
 

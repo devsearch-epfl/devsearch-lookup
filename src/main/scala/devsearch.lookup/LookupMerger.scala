@@ -2,6 +2,10 @@ package devsearch.lookup
 
 import akka.actor._
 
+/**
+ * This actor is responsible for contacting each partition, to merge their
+ * results and to send it back to the requestor (Play app).
+ */
 class LookupMerger(
   requestor: ActorRef, partitionActors: Seq[ActorRef], request: SearchRequest
 ) extends Actor with ActorLogging {
