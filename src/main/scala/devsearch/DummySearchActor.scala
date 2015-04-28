@@ -37,8 +37,7 @@ class DummySearchActor extends Actor with ActorLogging {
     }
   }
 
-  @override
-  def receive = {
+  override def receive = {
     case features: List[String @unchecked] =>
       val result = getMatchesFromDb(features).map(Right(_)).recover({
         case e => Left(e.getMessage)
