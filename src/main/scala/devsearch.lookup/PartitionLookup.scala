@@ -16,7 +16,6 @@ class PartitionLookup extends Actor with ActorLogging {
   val db = connection("devsearch")
   val collection = db("features")
 
-  // returns future to tuple (repo, file path, line)
   def getMatchesFromDb(features: Seq[String]): Future[SearchResult] = {
     if (features.isEmpty) Future.successful(SearchResultSuccess(Seq()))
     else {
