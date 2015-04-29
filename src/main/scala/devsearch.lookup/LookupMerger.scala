@@ -13,15 +13,17 @@ class LookupMerger(
   log.info("Starting LookupMerger")
 
   partitionActors.foreach(_ ! request)
-  var results: Seq[SearchResult] = Seq()
+  var numReceived: Int = 0
+  var results: Seq[SearchResultEntry] = Seq()
 
   override def receive = {
-    case partitionResult: SearchResultSuccess =>
+    case SearchResultSuccess(partitionResult) =>
       log.info("LookupMerger: receive SearchResultSuccess")
 
-      results = results :+ partitionResult
-      if (results.length == partitionActors.length) {
-        requestor ! results(0) // TODO: merge results
+      numReceived += 1
+      results ++= partitionResult
+      if (numReceived == partitionActors.length) {
+        requestor ! SearchResultSuccess(FindNBest(results, 10).sortBy(-_.score))
         context.stop(self)
       }
     case SearchResultError(message) =>

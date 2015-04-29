@@ -20,6 +20,10 @@ class PartitionLookup extends Actor with ActorLogging {
   val db = connection("devsearch")
   val collection = db("features")
 
+  def getScore(repo: String, file: String, line: Int): Float = {
+    line // TODO we need some scoring function here, for now just anything that has proper type
+  }
+
   def getMatchesFromDb(features: Seq[String]): Future[SearchResult] = {
     if (features.isEmpty) Future.successful(SearchResultSuccess(Seq()))
     else {
@@ -30,14 +34,16 @@ class PartitionLookup extends Actor with ActorLogging {
       val matchesFuture: Future[List[BSONDocument]] =
         collection.find(query, filter).cursor[BSONDocument].collect[List](10)
       matchesFuture.map{ list =>
-        SearchResultSuccess(list.map { doc =>
+        SearchResultSuccess(FindNBest(list.map { doc =>
           val repoAndFile = doc.getAs[String]("file").get
           val firstSlash = repoAndFile.indexOf("/")
           val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
           val repo = repoAndFile.substring(0, secondSlash)
           val file = repoAndFile.substring(secondSlash + 1)
-          SearchResultEntry(repo, file, doc.getAs[Long]("line").get.toInt)
-        })
+          val line = doc.getAs[Long]("line").get.toInt
+          val score = getScore(repo, file, line)
+          SearchResultEntry(repo, file, line, score)
+        }, 10))
       }
     }
   }
