@@ -2,7 +2,7 @@
 Module for performing the online search query
 
 ## Setup the database
-* Install MongoDB
+* Install MongoDB (3 or higher)
 * Run the database daemon (if it is not already started)
  
 `mongod --dbpath some/path`
