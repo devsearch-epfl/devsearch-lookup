@@ -45,7 +45,7 @@ class PartitionLookup extends Actor with ActorLogging {
 
 
           new FeatureEntry(Location(owner, repo, file), feature, line)
-        }.groupBy(_.loc).map(toSearchResultEntry).toSeq, 10))
+        }.groupBy(_.loc).map(getScore).toSeq, 10))
       }
     }
   }
@@ -64,19 +64,33 @@ class PartitionLookup extends Actor with ActorLogging {
 
 
   /**
-   * Generates superfeatures of each file and returns a searchResultEntry.
+   * Generates superfeatures of each file and returns a searchResultEntry including score.
    * @param entry
    * @return
    */
-  def toSearchResultEntry(entry: (Location, List[FeatureEntry])): SearchResultEntry = entry match{
+  def getScore(entry: (Location, List[FeatureEntry])): SearchResultEntry = entry match{
     case (Location(owner, repo, file), list) => {
+
       val nbMatches = list.length
 
+      val nbDifferentFeatures = list.groupBy(_.feature).toList.length
 
-      val score = 1 * nbMatches
+
+      //TODO: What kind of metric should we use here? we might need filesize for normalizing...
+      //standard deviation is a bad choice!
+      val lineAvg = list.map(_.line).sum/list.size
+      val stdDevLines = Math.sqrt((list.map(e => Math.pow(e.line - lineAvg, 2)).sum)/(list.size - 1))
 
 
-      print("\n\n\t"+owner+" score: "+score+"\n\nS")
+      //TODO: load repoRank into Mongo, query it or this file.
+      val repoRank = 0
+
+      //TODO: assign good weights!
+      val score = 5 * nbMatches + 2 * nbDifferentFeatures - stdDevLines + repoRank
+
+
+
+      print("\n\t"+file+" score: "+score+" ("+nbMatches+", "+nbDifferentFeatures+", "+10/stdDevLines+")\n\nS")
 
 
 
