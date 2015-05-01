@@ -6,6 +6,8 @@ version := "0.1-snapshot"
 
 scalaVersion := "2.10.4"
 
+val akkaVersion = "2.3.9"
+
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 /*resolvers ++= Seq(
@@ -13,9 +15,16 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
   Resolver.sonatypeRepo("snapshots")
 )*/
 
+// https://github.com/ReactiveMongo/ReactiveMongo#set-up-your-project-dependencies
+resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/"
+
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
-  "org.apache.spark" %% "spark-core" % "1.2.1"
+  "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+  "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23"
 )
+
+Revolver.settings
 
 parallelExecution in Test := false
