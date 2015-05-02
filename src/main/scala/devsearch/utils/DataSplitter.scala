@@ -1,8 +1,6 @@
 package devsearch.utils
 
-import com.plasmaconduit.distributed._
 import org.apache.spark.{rdd, SparkConf, SparkContext}
-import scala.util.parsing.json.JSON
 import devsearch.features.Feature
 import org.apache.spark.rdd.RDD
 import spray.json._
@@ -63,7 +61,7 @@ object DataSplitter {
 
     //prepare consistent hashing...
     val buckets = (1 to nbBuckets).tail.map(nb => HashRingNode("bucket"+nb, 100))
-    val ring = new HashRing(buckets)
+    val ring = new SerializableHashRing(buckets)
 
 
     //read files
@@ -106,7 +104,7 @@ object DataSplitter {
 
     //create files
     for (i <- 1 to nbBuckets) {
-      featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
+      //  featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
       ranksJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/repoRank/bucket" + i)
     }
   }
