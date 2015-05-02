@@ -2,13 +2,14 @@ package devsearch.utils
 
 import org.apache.spark.{rdd, SparkConf, SparkContext}
 import devsearch.features.Feature
-import org.apache.spark.rdd.RDD
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
 
-
-case class JsonFeature(key: String, ownerRepo: String, fileName: String, line: Int)
+/**
+ * These two classes are needed for transforming RepoRanks and Features into JSON format. (THX Pwalch!)
+ */
+case class JsonFeature(key: String, ownerRepo: String, fileName: String, String: Int)
 object FeatureJsonProtocol extends DefaultJsonProtocol {
   implicit val jsonFeatureFormat = jsonFormat4(JsonFeature)
 }
@@ -22,11 +23,16 @@ object RepoRankJsonProtocol extends DefaultJsonProtocol {
 /**
  * Created by hubi on 5/1/15.
  *
- * The dataSplitter is needed for converting to JSON and distributing our data (features, RepoRank) to several buckets.
- * Each of the Akka PartitionLookup nodes will be responsible for one of those buckets.
+ * The dataPreparer is needed for converting to JSON and distributing our data (features, RepoRank) to several buckets.
+ * It basically transforms the python scripts features2json.py and distributeFiles.py into a spark job.
+ *
+ * The buckets are chosen by hashing "owner/repo" of the features and ranks. Each of the Akka PartitionLookup nodes will
+ * be responsible for one of those buckets.
  *
  * This spark job applies 'consistent hashing' to our features. More about consistent hashing on
- * http://www.tom-e-white.com//2007/11/consistent-hashing.html
+ * http://www.tom-e-white.com//2007/11/consistent-hashing.html.
+ * The algorithm used in our case is the one of JosephMoniz: http://blog.plasmaconduit.com/consistent-hashing/ and
+ * https://github.com/JosephMoniz/scala-hash-ring and
  *
  *
  * Usage:
@@ -35,14 +41,16 @@ object RepoRankJsonProtocol extends DefaultJsonProtocol {
  * - 3rd argument is the output directory of the buckets
  * - 4th argument is the number of buckets
  */
-object DataSplitter {
+object DataPreparer {
 
 
   def main(args: Array[String]) {
 
     //some argument checking...
-    if(args.length != 4) throw new ArgumentException("You need to enter 4 arguemnts, not " + args.length + ". ")
-    if(!args(3).matches("""\d+""")) throw new ArgumentException("4th argument must be an integer.")
+    if(args.length != 4)
+      throw new ArgumentException("You need to enter 4 arguemnts, not " + args.length + ". ")
+    if(!args(3).matches("""\d+"""))
+      throw new ArgumentException("4th argument must be an integer.")
 
     val featureInput  = args(0)
     val repoRankInput = args(1)
@@ -66,7 +74,8 @@ object DataSplitter {
     val ranks    = sc.textFile(repoRankInput)
 
 
-    //transform into JSON and split the lines
+    //transform into JSON and assign each line to a bucket.
+    //The bucket is chosen according to ownerRepo.
     val featuresJSON = features.map(Feature.parse(_)).map(f => {
       import FeatureJsonProtocol._
       val ownerRepo = f.pos.location.user+"/"+f.pos.location.repoName
@@ -79,28 +88,6 @@ object DataSplitter {
       }
     })
 
-
-    //className%3DExampleModule,facebook%2Fpresto%2Fpresto-example-http%2Fsrc%2Fmain%2Fjava%2Fcom%2Ffacebook%2Fpresto%2Fexample%2FExampleModule.java,34
-    /*val featuresJSON = features.map(f => {
-      print("\n\n\n\n" + f + "\n\n\n\n\n")
-      val splitted = f.split(",")
-      val key = splitted(0)
-      val line = splitted(2).toInt
-      val firstSlash = splitted(1).indexOf("/")
-      val secondSlash = splitted(1).indexOf("/", firstSlash + 1)
-      val ownerRepo = splitted(1).substring(0, secondSlash)
-      val file = splitted(1).substring(secondSlash + 1)
-      import FeatureJsonProtocol._
-      val jsonFeature = JsonFeature(key,
-        ownerRepo,
-        file,
-        line).toJson.asJsObject.toString
-      ring.get(ownerRepo) match {
-        case Some(bucket: String) => (bucket, jsonFeature)
-      }
-    })*/
-
-
     val ranksJSON = ranks.map{
       r =>
         val splitted = r.split(",")
@@ -112,7 +99,7 @@ object DataSplitter {
     }
 
 
-    //create files
+    //save the output
     for (i <- 0 to nbBuckets) {
       featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
       ranksJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/repoRank/bucket" + i)
@@ -121,10 +108,11 @@ object DataSplitter {
 }
 
 
+//Thrown when arguments are somehow incorrect...
 case class ArgumentException(cause:String)  extends Exception("ERROR: " + cause + """
     |        Correct usage:
     |         - arg1 = path/to/features
     |         - arg2 = path/to/repoRank
-    |         - arg3 = nbBuckets (Integer)
     |         - arg4 = path/to/bucket/output
+    |         - arg3 = nbBuckets (Integer)
   """.stripMargin)
