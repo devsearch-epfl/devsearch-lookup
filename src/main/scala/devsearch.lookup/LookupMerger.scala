@@ -1,6 +1,6 @@
 package devsearch.lookup
 
-import akka.actor._
+import  akka.actor._
 
 /**
  * This actor is responsible for contacting each partition, to merge their

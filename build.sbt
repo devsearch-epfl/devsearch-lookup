@@ -1,3 +1,10 @@
+import AssemblyKeys._  // put this at the top of the file
+
+assemblySettings
+
+
+
+
 name := "devsearch-lookup"
 
 shellPrompt := { state => "[\033[36m" + name.value + "\033[0m] $ " }
@@ -22,8 +29,12 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
-  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23"
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
+  "org.apache.spark" %% "spark-core" % "1.3.0" % "provided",
+  "io.spray" %%  "spray-json" % "1.3.1"
 )
+
+//sources in Compile <<= (sources in Compile).map(_ filter(_.name == "devsearch.util.DateSplitter.scala"))
 
 Revolver.settings
 
