@@ -30,7 +30,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
   "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
-  "org.apache.spark" %% "spark-core" % "1.3.0" % "provided"
+  "org.apache.spark" %% "spark-core" % "1.3.0" % "provided",
+  "io.spray" %%  "spray-json" % "1.3.1"
 )
 
 //sources in Compile <<= (sources in Compile).map(_ filter(_.name == "devsearch.util.DateSplitter.scala"))
