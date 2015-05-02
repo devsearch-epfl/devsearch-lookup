@@ -10,14 +10,11 @@ import scala.concurrent.Future
  * This actor is permanently responsible for one partition of the database. It
  * receives requests and returns the K best matches of the partition.
  */
-class PartitionLookup extends Actor with ActorLogging {
+class PartitionLookup(val db : DefaultDB) extends Actor with ActorLogging {
   import context.dispatcher
 
   log.info("Starting PartitionLookup")
 
-  val driver = new MongoDriver
-  val connection = driver.connection(List("localhost"))
-  val db = connection("devsearch")
   val collection = db("features")
 
   def getMatchesFromDb(features: Seq[String]): Future[SearchResult] = {
