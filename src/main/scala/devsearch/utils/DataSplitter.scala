@@ -30,16 +30,12 @@ object RepoRankJsonProtocol extends DefaultJsonProtocol {
  *
  *
  * Usage:
- * - first argument is the input json file containing the features
- * - the other arguments are at least one path or tuple: bucket_x.json weight_x (weight_x is optional)
+ * - 1st argument is the input directory containing the feature files
+ * - 2nd argument is the input directory containing the repoRank files
+ * - 3rd argument is the output directory of the buckets
+ * - 4th argument is the number of buckets
  */
 object DataSplitter {
-
-  //val featureInput  = "/home/hubi/Documents/BigData/DevSearch/bla/part-00000"
-  //val repoRankInput = "/home/hubi/Documents/BigData/DevSearch/testRanking/*"
-  //val outputPath    = "/home/hubi/Documents/BigData/DevSearch/buckets"
-  //val nbBuckets     = 5
-
 
 
   def main(args: Array[String]) {
@@ -60,7 +56,8 @@ object DataSplitter {
 
 
     //prepare consistent hashing...
-    val buckets = (1 to nbBuckets).tail.map(nb => HashRingNode("bucket"+nb, 100))
+    //bucket0 always seems to be empty...
+    val buckets = (0 to nbBuckets).tail.map(nb => HashRingNode("bucket"+nb, 100))
     val ring = new SerializableHashRing(buckets)
 
 
@@ -82,6 +79,28 @@ object DataSplitter {
       }
     })
 
+
+    //className%3DExampleModule,facebook%2Fpresto%2Fpresto-example-http%2Fsrc%2Fmain%2Fjava%2Fcom%2Ffacebook%2Fpresto%2Fexample%2FExampleModule.java,34
+    /*val featuresJSON = features.map(f => {
+      print("\n\n\n\n" + f + "\n\n\n\n\n")
+      val splitted = f.split(",")
+      val key = splitted(0)
+      val line = splitted(2).toInt
+      val firstSlash = splitted(1).indexOf("/")
+      val secondSlash = splitted(1).indexOf("/", firstSlash + 1)
+      val ownerRepo = splitted(1).substring(0, secondSlash)
+      val file = splitted(1).substring(secondSlash + 1)
+      import FeatureJsonProtocol._
+      val jsonFeature = JsonFeature(key,
+        ownerRepo,
+        file,
+        line).toJson.asJsObject.toString
+      ring.get(ownerRepo) match {
+        case Some(bucket: String) => (bucket, jsonFeature)
+      }
+    })*/
+
+
     val ranksJSON = ranks.map{
       r =>
         val splitted = r.split(",")
@@ -93,18 +112,9 @@ object DataSplitter {
     }
 
 
-
-    //println("\n\n\n\n\n"+featuresJSON.collect())
-
-
-    //assign buckets
-    //val featuresAssignedBuckets = splitData(features, ring)
-    //val ranksAssignedBuckets    = splitData(ranks, ring)
-
-
     //create files
-    for (i <- 1 to nbBuckets) {
-      //  featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
+    for (i <- 0 to nbBuckets) {
+      featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
       ranksJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/repoRank/bucket" + i)
     }
   }
