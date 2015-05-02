@@ -96,7 +96,7 @@ class PartitionLookup extends Actor with ActorLogging {
 
 
 
-      SearchResultEntry(owner+"/"+repo, file, 0, score.toFloat)
+      SearchResultEntry(owner, repo, file, 0, score.toFloat)
 
     }
   }
@@ -123,7 +123,7 @@ class PartitionLookup extends Actor with ActorLogging {
 
         val finalScore =.6 * densityScore +.4 * sizeScore
 
-        SearchResultEntry(location.repo, location.file, cluster.min, finalScore.toFloat)
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, finalScore.toFloat)
       }
     }
   }
