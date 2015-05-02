@@ -37,33 +37,32 @@ object RepoRankJsonProtocol extends DefaultJsonProtocol {
  */
 object DataSplitter {
 
-  val featureInput  = "/home/hubi/Documents/BigData/DevSearch/bla/part-00000"
-  val repoRankInput = "/home/hubi/Documents/BigData/DevSearch/testRanking/*"
-  val outputPath    = "/home/hubi/Documents/BigData/DevSearch/buckets"
-  val nbBuckets     = 5
+  //val featureInput  = "/home/hubi/Documents/BigData/DevSearch/bla/part-00000"
+  //val repoRankInput = "/home/hubi/Documents/BigData/DevSearch/testRanking/*"
+  //val outputPath    = "/home/hubi/Documents/BigData/DevSearch/buckets"
+  //val nbBuckets     = 5
 
-
-  // throws each json line into a bucket (according to owner/repo)
-  def splitData(jsonLines: RDD[String], ring: HashRing): rdd.RDD[(String, String)] = {
-    jsonLines map {
-      json => JSON.parseFull(json) match {
-        case Some(m: Map[String, Any]) => {
-          m("ownerRepo") match {
-            case s:String => ring.get(s) match {case Some(b: String) => (b, json)}
-          }
-        }
-      }
-    }
-  }
 
 
   def main(args: Array[String]) {
+
+    //some argument checking...
+    if(args.length != 4) throw new ArgumentException("You need to enter 4 arguemnts, not " + args.length + ". ")
+    if(!args(3).matches("""\d+""")) throw new ArgumentException("4th argument must be an integer.")
+
+    val featureInput  = args(0)
+    val repoRankInput = args(1)
+    val outputPath    = args(2)
+    val nbBuckets     = args(3).toInt
+
+
+
     val sparkConf = new SparkConf().setAppName("Data Splitter").setMaster("local[4]")
     val sc = new SparkContext(sparkConf)
 
 
     //prepare consistent hashing...
-    val buckets = (0 to nbBuckets).tail.map(nb => HashRingNode("bucket"+nb, 100))
+    val buckets = (1 to nbBuckets).tail.map(nb => HashRingNode("bucket"+nb, 100))
     val ring = new HashRing(buckets)
 
 
@@ -72,26 +71,28 @@ object DataSplitter {
     val ranks    = sc.textFile(repoRankInput)
 
 
-    //transform into JSON
-    /*val featuresJSON = features.map(Feature.parse(_)).map(f => {
+    //transform into JSON and split the lines
+    val featuresJSON = features.map(Feature.parse(_)).map(f => {
       import FeatureJsonProtocol._
-      JsonFeature(f.key,
-        f.pos.location.user+"/"+f.pos.location.repoName,
+      val ownerRepo = f.pos.location.user+"/"+f.pos.location.repoName
+      val jsonFeature = JsonFeature(f.key,
+        ownerRepo,
         f.pos.location.fileName,
         f.pos.line).toJson.asJsObject.toString
+      ring.get(ownerRepo) match {
+        case Some(bucket: String) => (bucket, jsonFeature)
+      }
+    })
 
-    })*/
-    val ranksAssignedBuckets = ranks.map{
+    val ranksJSON = ranks.map{
       r =>
         val splitted = r.split(",")
         import RepoRankJsonProtocol._
-        val json = JsonRepoRank(splitted(0), splitted(1).toDouble).toJson.asJsObject.toString
+        val jsonRepoRank = JsonRepoRank(splitted(0), splitted(1).toDouble).toJson.asJsObject.toString
         ring.get(splitted(0)) match {
-          case Some(bucket: String) => (bucket, json)
+          case Some(bucket: String) => (bucket, jsonRepoRank)
         }
     }
-
-
 
 
 
@@ -105,8 +106,17 @@ object DataSplitter {
 
     //create files
     for (i <- 1 to nbBuckets) {
-      //featuresAssignedBuckets.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
-      ranksAssignedBuckets.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/repoRank/bucket" + i)
+      featuresJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/features/bucket" + i)
+      ranksJSON.filter(_._1 == "bucket" + i).map(_._2).saveAsTextFile(outputPath + "/repoRank/bucket" + i)
     }
   }
 }
+
+
+case class ArgumentException(cause:String)  extends Exception("ERROR: " + cause + """
+    |        Correct usage:
+    |         - arg1 = path/to/features
+    |         - arg2 = path/to/repoRank
+    |         - arg3 = nbBuckets (Integer)
+    |         - arg4 = path/to/bucket/output
+  """.stripMargin)
