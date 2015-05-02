@@ -9,7 +9,11 @@ import spray.json.DefaultJsonProtocol
 /**
  * These two classes are needed for transforming RepoRanks and Features into JSON format. (THX Pwalch!)
  */
-case class JsonFeature(key: String, ownerRepo: String, fileName: String, String: Int)
+case class JsonLine(line: String)
+object LineJsonProtocol extends DefaultJsonProtocol {
+  implicit val jsonNumberFormat = jsonFormat(JsonLine, "$numberInt")
+}
+case class JsonFeature(key: String, ownerRepo: String, fileName: String, line: JsObject)
 object FeatureJsonProtocol extends DefaultJsonProtocol {
   implicit val jsonFeatureFormat = jsonFormat4(JsonFeature)
 }
@@ -78,11 +82,12 @@ object DataPreparer {
     //The bucket is chosen according to ownerRepo.
     val featuresJSON = features.map(Feature.parse(_)).map(f => {
       import FeatureJsonProtocol._
+      import LineJsonProtocol._
       val ownerRepo = f.pos.location.user+"/"+f.pos.location.repoName
       val jsonFeature = JsonFeature(f.key,
         ownerRepo,
         f.pos.location.fileName,
-        f.pos.line).toJson.asJsObject.toString
+        JsonLine(f.pos.line.toString).toJson.asJsObject).toJson.asJsObject.toString
       ring.get(ownerRepo) match {
         case Some(bucket: String) => (bucket, jsonFeature)
       }
