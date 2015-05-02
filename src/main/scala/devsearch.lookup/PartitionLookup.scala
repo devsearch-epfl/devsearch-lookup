@@ -18,8 +18,10 @@ class PartitionLookup(val db : DefaultDB) extends Actor with ActorLogging {
   val collection = db("features")
 
   def getMatchesFromDb(features: Seq[String]): Future[SearchResult] = {
-    if (features.isEmpty) Future.successful(SearchResultSuccess(Seq()))
-    else {
+    if (features.isEmpty)
+      Future.successful(SearchResultSuccess(Seq()))
+    else
+    {
       val query = BSONDocument("$or" -> BSONArray(
         features.map(f => BSONDocument("feature" -> f))
       ))
@@ -42,7 +44,7 @@ class PartitionLookup(val db : DefaultDB) extends Actor with ActorLogging {
 
 
           new FeatureEntry(Location(owner, repo, file), feature, line)
-        }.groupBy(_.loc).map(getScore).toSeq, 10))
+        }.groupBy(_.loc).flatMap(getScores).toSeq, 10))
       }
     }
   }
@@ -91,8 +93,35 @@ class PartitionLookup(val db : DefaultDB) extends Actor with ActorLogging {
 
 
 
-      SearchResultEntry(owner+"/"+repo, file, 0, score.toFloat)
+      SearchResultEntry(owner, repo, file, 0, score.toFloat)
 
+    }
+  }
+
+  def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
+
+  def getScores(entry: (Location, List[FeatureEntry])): Iterable[SearchResultEntry] = entry match {
+
+
+    case (location, features) => {
+      // TODO: Cluster epsilon should maybe depend on the language of the file?
+      //       Typically scala features will be much closer to each other than in Java...
+      val positions = features.map(_.line).toArray
+      val clusters = DBSCAN(positions, 5.0, positions.length min 3)
+
+      clusters.map { cluster =>
+        val key: (Location, Int) = location -> cluster.min
+
+        val size = cluster.size
+        val radius = (cluster.max - cluster.min) / 2.0 + 1 // avoid radius = 0
+        val densityScore = clamp(size / radius, 0, 5) / 5.0
+
+        val sizeScore = clamp(size, 0, 20) / 20.0
+
+        val finalScore =.6 * densityScore +.4 * sizeScore
+
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, finalScore.toFloat)
+      }
     }
   }
 }
