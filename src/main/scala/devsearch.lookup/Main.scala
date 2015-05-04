@@ -15,7 +15,7 @@ object Main {
     else args(0) match {
       case "--slave" => runSlave(
           ConfigFactory.parseString(
-            s"akka.remote.netty.tcp.hostname=${InetAddress.getLocalHost.getHostAddress}"
+            s"akka.remote.netty.tcp.hostname=${InetAddress.getLocalHost.getHostName}"
           ).withFallback(ConfigFactory.load("deployment")))
       case "--master" => runMaster(true)
       case _ => runSlave(ConfigFactory.parseString(
@@ -32,7 +32,7 @@ object Main {
   }
 
   def runMaster(deployment : Boolean) : Unit = {
-    val ip = InetAddress.getLocalHost.getHostAddress
+    val ip = InetAddress.getLocalHost.getHostName
     val config = if(deployment) ConfigFactory.parseString("akka.remote.netty.tcp.hostname=" + ip).
       withFallback(ConfigFactory.load("deployment"))
       else ConfigFactory.load("application")
