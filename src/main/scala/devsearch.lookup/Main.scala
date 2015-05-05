@@ -32,7 +32,7 @@ object Main {
     }
 
     val conf = parser.parse(args, ConfigFactory.load("application")) getOrElse sys.exit(1)
-    //println(conf.root().render())
+
     val system = ActorSystem("lookupCluster", conf)
     if(conf.getBoolean("devsearch.slave")){
       system.actorOf(Props[PartitionManager], name = "partitionManager")

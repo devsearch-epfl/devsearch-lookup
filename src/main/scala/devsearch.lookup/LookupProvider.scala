@@ -12,7 +12,7 @@ class LookupProvider(val maxPartitions: Int) extends Actor with ActorLogging {
   log.info("Starting LookupProvider")
 
   val partitionManagers = context.actorOf(FromConfig.props(),
-  name = "partitionRouter")
+    name = "partitionRouter")
 
   override def receive = {
     case req: SearchRequest =>
