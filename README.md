@@ -17,7 +17,7 @@ Module for performing the online search query
 ## Running the application
 
 ### Usage
-
+```shell
 Usage: LookupCluster [options]
 
   -c | --cluster
@@ -28,7 +28,7 @@ Usage: LookupCluster [options]
         port of the netty server
   -n <value> | --nbpart <value>
         number of partitions
-
+```
 
 ### Running locally
 
