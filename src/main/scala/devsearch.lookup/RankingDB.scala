@@ -12,7 +12,7 @@ case class RepoRanking(owner: String, repo: String, score: Double)
  */
 object RankingDB {
 
-  val RANKING_COLLECTION_NAME = "ranking"
+  val RANKING_COLLECTION_NAME = "rankings"
 
   val collection = RawDB.getCollection(RANKING_COLLECTION_NAME)
 
