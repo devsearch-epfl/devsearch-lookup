@@ -11,7 +11,7 @@ class ExampleSpec extends FlatSpec with Matchers {
     val results = FeatureDB.getMatchesFromDb(Seq("className=ExampleModule", "typeReference=Type", "variableDeclaration=connectorId type=String", "variableDeclaration=type type=Type"))
     val list = Await.result(results, Duration.Inf)
 
-    list.size should be (10)
+    list.size should be (99)
   }
 
   it should "return an empty stream when there is no match" in {
@@ -20,7 +20,4 @@ class ExampleSpec extends FlatSpec with Matchers {
 
     list.size should be (0)
   }
-
-
-
 }
