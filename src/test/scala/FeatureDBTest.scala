@@ -5,7 +5,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 
-class ExampleSpec extends FlatSpec with Matchers {
+class FeatureDBTest extends FlatSpec with Matchers {
 
   "The FeatureDB" should "return 2 times 5 hits" in {
     val results = FeatureDB.getMatchesFromDb(Seq("dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4", "dummyfeature5"))
