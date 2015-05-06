@@ -50,8 +50,8 @@ object FeatureDB {
             "_id" -> "$file",
             "hits" -> BSONDocument(
               "$push" -> BSONDocument(
-                "$line" -> "$line",
-                "$feature" -> "$feature"))))
+                "line" -> "$line",
+                "feature" -> "$feature"))))
       )
     )
 
@@ -59,6 +59,7 @@ object FeatureDB {
 
     implicit object HitReader extends BSONDocumentReader[Hit] {
       def read(doc: BSONDocument): Hit = {
+        println(BSONDocument.pretty(doc))
         Hit(
           doc.getAs[Long]("line").get,
           doc.getAs[String]("feature").get
