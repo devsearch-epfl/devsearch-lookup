@@ -9,7 +9,7 @@ Module for performing the online search query
 * Get some features in MongoDB JSON format from hdfs (currently in the directory devsearch/testJsonBuckets)
 * Import the features into MongoDB
 
-`mongoimport --db devsearch --collection features --file features.json --drop`
+`for f in features/*; do mongoimport --db devsearch --collection features --file $f; done`
 
 ## Running the application
 
