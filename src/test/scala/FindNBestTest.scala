@@ -10,6 +10,11 @@ class FindNBestTest extends FlatSpec with Matchers {
     FindNBestNew(input, int2float, 3).length shouldEqual 3
   }
 
+  it should "work if we request too many results" in {
+    val input = Stream(1,2,3)
+    FindNBestNew(input, int2float, 100).length shouldEqual 3
+  }
+
   it should "return only best results" in {
     val input = Stream(1,2,3,4,5)
     FindNBestNew(input, int2float, 1) shouldEqual List(5)
