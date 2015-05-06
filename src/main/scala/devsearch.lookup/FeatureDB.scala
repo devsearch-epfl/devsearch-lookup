@@ -44,7 +44,7 @@ object FeatureDB {
         BSONDocument(
           "$match" -> BSONDocument(
             "feature" -> BSONDocument(
-              "$in" -> "features"))),
+              "$in" -> features))),
         BSONDocument(
           "$group" -> BSONDocument(
             "_id" -> "$file",
