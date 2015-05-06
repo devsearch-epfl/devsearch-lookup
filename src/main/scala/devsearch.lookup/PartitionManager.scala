@@ -16,7 +16,7 @@ class PartitionManager extends Actor with ActorLogging {
   val driver = new MongoDriver(context.system)
   val connection = driver.connection(List("localhost"))
   val db = connection("devsearch")
-  val lookup = context.actorOf(Props(classOf[PartitionLookup], db).withRouter(SmallestMailboxPool(10)), name = "partitionLookup")
+  val lookup = context.actorOf(Props(classOf[PartitionLookup]).withRouter(SmallestMailboxPool(10)), name = "partitionLookup")
   //In prestart add a few checks on the sanity of the databases
 
   override def receive = {
