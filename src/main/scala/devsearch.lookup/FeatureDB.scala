@@ -1,12 +1,9 @@
 package devsearch.lookup
 
-import reactivemongo.api.MongoDriver
-import reactivemongo.bson.{BSON, BSONDocumentReader, BSONArray, BSONDocument}
-import reactivemongo.core.commands.RawCommand
-
-import scala.concurrent.Future
+import reactivemongo.bson.{BSON, BSONArray, BSONDocument, BSONDocumentReader}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class Hit(line: Long, feature: String)
 case class DocumentHits(location: Location, hits: Stream[Hit])
@@ -16,14 +13,7 @@ case class DocumentHits(location: Location, hits: Stream[Hit])
  */
 object FeatureDB {
 
-  val DB_SERVER = "localhost"
-  val DB_NAME = "devsearch"
   val FEATURE_COLLECTION_NAME = "features"
-
-  val driver = new MongoDriver
-  val connection = driver.connection(List(DB_SERVER))
-  val db = connection(DB_NAME)
-  val featureCollection = db(FEATURE_COLLECTION_NAME)
 
   /**
    * fetches matches from the DB
@@ -55,11 +45,10 @@ object FeatureDB {
       )
     )
 
-    val futureResult: Future[BSONDocument] = db.command(RawCommand(command))
+    val futureResult: Future[BSONDocument] = RawDB.run(command)
 
     implicit object HitReader extends BSONDocumentReader[Hit] {
       def read(doc: BSONDocument): Hit = {
-        println(BSONDocument.pretty(doc))
         Hit(
           doc.getAs[Long]("line").get,
           doc.getAs[String]("feature").get
