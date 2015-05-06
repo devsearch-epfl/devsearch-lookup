@@ -1,12 +1,15 @@
 package devsearch.lookup
 
 import reactivemongo.api.MongoDriver
-import reactivemongo.bson.{BSONArray, BSONDocument}
+import reactivemongo.bson.{BSON, BSONDocumentReader, BSONArray, BSONDocument}
 import reactivemongo.core.commands.RawCommand
 
 import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
+
+case class Hit(line: Long, feature: String)
+case class DocumentHits(location: Location, hits: Stream[Hit])
 
 /**
  * Interract with the db to fetch files and line for a query
@@ -27,7 +30,7 @@ object FeatureDB {
    * @param features a list of feature index
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
-  def getMatchesFromDb(features: Seq[String]): Stream[(Location, Stream[(Long, String)])] = {
+  def getMatchesFromDb(features: Seq[String]): Future[Stream[DocumentHits]] = {
 
     /*
       Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename
@@ -54,26 +57,48 @@ object FeatureDB {
 
     val futureResult: Future[BSONDocument] = db.command(RawCommand(command))
 
+    implicit object HitReader extends BSONDocumentReader[Hit] {
+      def read(doc: BSONDocument): Hit = {
+        Hit(
+          doc.getAs[Long]("line").get,
+          doc.getAs[String]("feature").get
+        )
+      }
+    }
+
+    implicit object DocumentHitsReader extends BSONDocumentReader[DocumentHits] {
+      def read(doc: BSONDocument): DocumentHits = {
+
+        val repoAndFile = doc.getAs[String]("_id").get
+        val firstSlash = repoAndFile.indexOf("/")
+        val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
+
+        val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
+          docArray => docArray.values.map{
+            docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
+          }.flatten
+        }.getOrElse(Stream())
+
+
+        DocumentHits(
+          Location(
+            repoAndFile.substring(0, firstSlash),
+            repoAndFile.substring(firstSlash + 1, secondSlash),
+            repoAndFile.substring(secondSlash + 1)
+          ),
+          hitStream
+        )
+      }
+    }
+
     futureResult.map {
       list => list.getAs[BSONArray]("result").map {
         docArray => docArray.values.map {
-          doc =>
-            //TODO use seeAsOpt and readers
-            val repoAndFile = doc.getAS[String]("_id").get
-            val firstSlash = repoAndFile.indexOf("/")
-            val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
-            val owner = repoAndFile.substring(0, firstSlash)
-            val repo = repoAndFile.substring(firstSlash + 1, secondSlash)
-            val file = repoAndFile.substring(secondSlash + 1)
-
-            val hits = doc.getAs[BSONArray]("hits").map {
-              entry => (entry.getAs[Long]("line"), entry.getAs[String]("feature"))
-            }
-
-
-            (Location(owner, repo, file), hits)
-        }
-      }
+          docOption => docOption.seeAsOpt[BSONDocument].map (
+            BSON.readDocument[DocumentHits]
+          )
+        }.flatten
+      }.getOrElse(Stream())
     }
   }
 }
