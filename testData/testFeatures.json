@@ -1,0 +1,10 @@
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberLong": "39"}, "feature": "dummyfeature1"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberLong": "39"}, "feature": "dummyfeature2"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberLong": "32"}, "feature": "dummyfeature3"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberLong": "23"}, "feature": "dummyfeature4"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberLong": "28"}, "feature": "dummyfeature5"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberLong": "22"}, "feature": "dummyfeature1"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberLong": "25"}, "feature": "dummyfeature2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberLong": "26"}, "feature": "dummyfeature3"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberLong": "30"}, "feature": "dummyfeature4"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberLong": "31"}, "feature": "dummyfeature5"}
