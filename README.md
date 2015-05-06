@@ -6,10 +6,7 @@ Module for performing the online search query
 * Run the database daemon (if it is not already started)
 
 `mongod --dbpath some/path`
-* Get some features from the offline Spark job
-* Convert the features file to MongoDB JSON format (with Python 3)
-
-`python features2json.py < [your features file] > features.json`
+* Get some features in MongoDB JSON format from hdfs (currently in the directory devsearch/testJsonBuckets)
 * Import the features into MongoDB
 
 `mongoimport --db devsearch --collection features --file features.json --drop`
