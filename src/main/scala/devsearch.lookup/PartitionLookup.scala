@@ -19,15 +19,17 @@ class PartitionLookup() extends Actor with ActorLogging {
     case SearchRequest(features) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      val results: Future[SearchResult] = FeatureDB.getMatchesFromDb(features).map(
-        docHitsStream => SearchResultSuccess(
-          FindNBestNew[SearchResultEntry](docHitsStream.flatMap(getScores), _.score, 10).toSeq)
-      ).recover({
-          case e => SearchResultError(e.getMessage)
-        })
-
-      results pipeTo sender
+      getFeaturesAndScores(features) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
+  }
+
+  def getFeaturesAndScores(features: Seq[String]): Future[SearchResult] = {
+    FeatureDB.getMatchesFromDb(features).map(
+      docHitsStream => SearchResultSuccess(
+        FindNBestNew[SearchResultEntry](docHitsStream.flatMap(getScores), _.score, 10).toSeq)
+    ).recover({
+      case e => SearchResultError(e.getMessage)
+    })
   }
 
 
