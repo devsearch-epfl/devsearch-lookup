@@ -76,6 +76,9 @@ class PartitionLookup() extends Actor with ActorLogging {
 
     case DocumentHits(location, streamOfHits) => {
 
+//      val scoreFuture = RankingDB.getRanking(location)
+//      val score = Await.result(scoreFuture, Duration("100ms"))
+
       // TODO: Cluster epsilon should maybe depend on the language of the file?
       //       Typically scala features will be much closer to each other than in Java...
 
@@ -83,7 +86,6 @@ class PartitionLookup() extends Actor with ActorLogging {
       val clusters = DBSCAN(positions, 5.0, positions.length min 3)
 
       clusters.map { cluster =>
-        val key: (Location, Int) = location -> cluster.min
 
         val size = cluster.size
         val radius = (cluster.max - cluster.min) / 2.0 + 1 // avoid radius = 0
@@ -92,6 +94,8 @@ class PartitionLookup() extends Actor with ActorLogging {
         val sizeScore = clamp(size, 0, 20) / 20.0
 
         val finalScore =.6 * densityScore +.4 * sizeScore
+
+//        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
 
         SearchResultEntry(location.owner, location.repo, location.file, cluster.min, finalScore.toFloat)
       }
