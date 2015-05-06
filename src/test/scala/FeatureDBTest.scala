@@ -14,4 +14,13 @@ class ExampleSpec extends FlatSpec with Matchers {
     list.size should be (10)
   }
 
+  it should "return an empty stream when there is no match" in {
+    val results = FeatureDB.getMatchesFromDb(Seq("dummy feature", "I won't match anything", "oh yeah baby", "this list is now long enough"))
+    val list = Await.result(results, Duration.Inf)
+
+    list.size should be (0)
+  }
+
+
+
 }
