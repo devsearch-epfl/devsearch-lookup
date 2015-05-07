@@ -7,12 +7,18 @@ Module for performing the online search query
 `mongod --dbpath some/path`
 * Get some features in MongoDB JSON format from hdfs (/projects/devsearch/JsonBuckets/features/bucket*)
 * Download and import the features into MongoDB:
-`for f in features/*; do mongoimport --db devsearch --collection features --file $f; done`
+
+`cat features/* | mongoimport --db devsearch --collection features --drop`
 * Create the index on the feature value:
-`mongo --eval "db.records.createIndex( { feature: 1 } )" devsearch`
+
+`mongo --eval "db.features.createIndex( { feature: 1 } )" devsearch`
+
 Note: you can check the last step with
+
 `mongo --eval "printjson(db.features.getIndexes())" devsearch`
+
 or check if the last step is done with
+
 `mongo --eval "printjson(db.currentOp())" devsearch`
 
 ## Running the application
