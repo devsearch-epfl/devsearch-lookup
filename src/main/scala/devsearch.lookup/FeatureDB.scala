@@ -5,7 +5,7 @@ import reactivemongo.bson.{BSON, BSONArray, BSONDocument, BSONDocumentReader}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class Hit(line: Long, feature: String)
+case class Hit(line: Int, feature: String)
 case class DocumentHits(location: Location, hits: Stream[Hit])
 
 /**
@@ -50,7 +50,7 @@ object FeatureDB {
     implicit object HitReader extends BSONDocumentReader[Hit] {
       def read(doc: BSONDocument): Hit = {
         Hit(
-          doc.getAs[Long]("line").get,
+          doc.getAs[Double]("line").get.toInt,
           doc.getAs[String]("feature").get
         )
       }
