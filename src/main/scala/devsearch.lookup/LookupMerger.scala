@@ -11,7 +11,7 @@ class LookupMerger(
 ) extends Actor with ActorLogging {
 
   log.info("Starting LookupMerger")
-  context.setReceiveTimeout(3.seconds)
+  context.setReceiveTimeout(8.seconds)
 
   var results: Seq[SearchResultEntry] = Seq()
   var nbResults : Int = 0
@@ -22,20 +22,22 @@ class LookupMerger(
       nbResults += 1
       if(nbResults == maxPartitions){
         log.info("LookUpMerger: All partitions provided, sending the data back")
-        endLookup
+        mergeAndReply
       }
     case SearchResultError(message) =>
       requestor ! SearchResultError(s"one partition returned an error: $message")
       context.stop(self)
     case ReceiveTimeout =>
       log.info("LookUpMerger: Timeout expires: sending the data back")
-      endLookup
+      mergeAndReply
     case x => log.error(s"Received unexpected message $x")
 
   }
 
-  def endLookup : Unit = {
-    requestor ! SearchResultSuccess(FindNBestOld(results, 10).sortBy( - _.score))
+  def mergeAndReply: Unit = {
+    requestor ! SearchResultSuccess(
+      FindNBest(results.toStream, {x: SearchResultEntry => x.score}, 10).sortBy( - _.score)
+    )
     context.stop(self)
   }
 
