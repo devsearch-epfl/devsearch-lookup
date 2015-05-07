@@ -23,7 +23,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
   "com.github.scopt" %% "scopt" % "3.3.0",
-  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23"
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
+  "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "1.47.3" % "test"
 )
 
 Revolver.settings
