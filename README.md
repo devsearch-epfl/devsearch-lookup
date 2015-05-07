@@ -3,15 +3,15 @@ Module for performing the online search query
 
 ## Setup the database
 * Install MongoDB (3 or higher)
-* Run the database daemon (if it is not already started): 
+* Run the database daemon (if it is not already started):
 `mongod --dbpath some/path`
 * Get some features from the offline Spark job
 * Get some features in MongoDB JSON format from hdfs (currently in the directory devsearch/testJsonBuckets)
-* Import the features into MongoDB 
+* Import the features into MongoDB
 `for f in features/*; do mongoimport --db devsearch --collection features --file $f; done`
-* Create the index on the feature value: 
+* Create the index on the feature value:
 `mongo --eval "db.records.createIndex( { feature: 1 } )" devsearch`
-Note: you can check the last step with 
+Note: you can check the last step with
 `mongo --eval "printjson(db.features.getIndexes())" devsearch`
 or check if the last step is done with
 `mongo --eval "printjson(db.currentOp())" devsearch`
@@ -41,3 +41,10 @@ so there will not contain diverse search results.
 sbt "run -n 1"
 sbt "run -s -p 21454"
 
+
+### How to run tests
+
+For now mongod has to be running in the background with the right data set. We should automate this.
+* Import test features: `mongoimport --db devsearch --collection features --file testData/testFeatures.json --drop`
+* Import test rankings: `mongoimport --db devsearch --collection rankings --file testData/testRanking.json --drop`
+* Run tests: `sbt test`

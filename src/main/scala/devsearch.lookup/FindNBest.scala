@@ -6,9 +6,10 @@ import java.util.Random
  * QuickSelect algorithm
  * http://en.wikipedia.org/wiki/Quickselect
  */
-object FindNBest {
+object FindNBestOld {
   val rand = new Random(System.currentTimeMillis())
 
+  @deprecated(message = "use FindNBest instead", since = "2015-05-07")
   def apply(list: Seq[SearchResultEntry], n: Int): Seq[SearchResultEntry] = {
     list.take(n)
     /* todo: fix this (infinite recursion)
@@ -22,7 +23,7 @@ object FindNBest {
   }
 }
 
-object FindNBestNew {
+object FindNBest {
 
   //TODO which version is fastest?
 

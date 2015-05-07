@@ -35,7 +35,7 @@ class LookupMerger(
   }
 
   def endLookup : Unit = {
-    requestor ! SearchResultSuccess(FindNBest(results, 10).sortBy( - _.score))
+    requestor ! SearchResultSuccess(FindNBestOld(results, 10).sortBy( - _.score))
     context.stop(self)
   }
 
