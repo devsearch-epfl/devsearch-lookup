@@ -11,7 +11,7 @@ class LookupMerger(
 ) extends Actor with ActorLogging {
 
   log.info("Starting LookupMerger")
-  context.setReceiveTimeout(10.millis)
+  context.setReceiveTimeout(8.seconds)
 
   var results: Seq[SearchResultEntry] = Seq()
   var nResponses : Int = 0
