@@ -50,7 +50,7 @@ object FeatureDB {
     implicit object HitReader extends BSONDocumentReader[Hit] {
       def read(doc: BSONDocument): Hit = {
         Hit(
-          doc.getAs[Double]("line").get.toInt,
+          doc.getAs[Int]("line").get,
           doc.getAs[String]("feature").get
         )
       }

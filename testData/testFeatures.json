@@ -1,10 +1,10 @@
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": 39, "feature": "dummyfeature1"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": 39, "feature": "dummyfeature2"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": 32, "feature": "dummyfeature3"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": 23, "feature": "dummyfeature4"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": 28, "feature": "dummyfeature5"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": 22, "feature": "dummyfeature1"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": 25, "feature": "dummyfeature2"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": 26, "feature": "dummyfeature3"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": 30, "feature": "dummyfeature4"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": 31, "feature": "dummyfeature5"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "feature": "dummyfeature1"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "feature": "dummyfeature2"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "32"}, "feature": "dummyfeature3"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "23"}, "feature": "dummyfeature4"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "28"}, "feature": "dummyfeature5"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "22"}, "feature": "dummyfeature1"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "25"}, "feature": "dummyfeature2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "26"}, "feature": "dummyfeature3"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "feature": "dummyfeature4"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "31"}, "feature": "dummyfeature5"}
