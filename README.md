@@ -38,3 +38,6 @@ The first system you need to start is without flags or optionnaly the -n.
 Then you can add as many slaves, with the -s flag. You will also need to override
 the default port with -p. They will connect to the local Mongo database though,
 so there will not contain diverse search results.
+sbt "run -n 1"
+sbt "run -s -p 21454"
+
