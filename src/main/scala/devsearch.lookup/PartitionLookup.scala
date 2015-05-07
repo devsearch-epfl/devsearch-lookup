@@ -61,10 +61,9 @@ class PartitionLookup() extends Actor with ActorLogging {
         val featureCount = featuresByLine.foldLeft(collection.mutable.Map[String, Int]()) ((map, curr) => {
           map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
         })
-        val featureRatio = featureCount.size/nbQueryFeatures
-        println("\n\n\n\n\n\n\n"+featureRatio+"\n\n\n\n\n\n\n")
+        val ratioOfMatches = featureCount.size.toDouble/nbQueryFeatures
 
-        val finalScore =.6 * densityScore +.3 * sizeScore + .1 * featureRatio
+        val finalScore =.6 * densityScore +.3 * sizeScore + .1 * ratioOfMatches
 
         //        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
 
