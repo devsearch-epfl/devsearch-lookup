@@ -23,6 +23,7 @@ object FindNBestOld {
   }
 }
 
+
 object FindNBest {
 
   //TODO which version is fastest?
