@@ -38,7 +38,7 @@ object FeatureDB {
     /*
       Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename
       Example in the mongo shell:
-      db.features.aggregate([ {$match: { feature: { $in: ["className=ExampleModule", "typeReference=Type", "variableDeclaration=connectorId type=String", "variableDeclaration=type type=Type"]} }}, {$group: { _id: "$file", hits: { $push: { line: "$line", feature: "$feature"}}}}])
+      db.features.aggregate([ {$match: { feature: { $in: ["dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4"]} }}, {$group: { _id: "$file", hits: { $push: { line: "$line", feature: "$feature"}}}}])
       more info : http://reactivemongo.org/releases/0.10/documentation/advanced-topics/commands.html
      */
 

@@ -8,3 +8,7 @@
 {"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "26"}, "feature": "dummyfeature3"}
 {"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "feature": "dummyfeature4"}
 {"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "31"}, "feature": "dummyfeature5"}
+
+{"file": "dummyuser2/dummyrepo2/path/to/file.scala", "line": {"$numberInt": "26"}, "feature": "featureforlanguage1"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "feature": "featureforlanguage2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.js", "line": {"$numberInt": "31"}, "feature": "featureforlanguage2"}
