@@ -19,8 +19,9 @@ object FindNBest {
     list.sortBy(scoreFunc).tail
   }
 
-  def apply[Entry](stream: Stream[Entry], scoreFunc: Entry => Float, n: Int): List[Entry] = {
+  def apply[Entry](stream: Stream[Entry], scoreFunc: Entry => Float, n: Int): (List[Entry], Long) = {
     var ret = stream.take(n).toList
+    var count = ret.size
     for (file <- stream.drop(n)) {
       /*
        * TODO will probably need to make sure it is GC friendly
@@ -28,7 +29,8 @@ object FindNBest {
        * c.f. Stream.foldLeft, Stream.reduceLeft
        */
       ret = dropSmallestV1(file :: ret, scoreFunc)
+      count += 1
     }
-    ret.sortBy(scoreFunc).reverse
+    (ret.sortBy(scoreFunc).reverse, count)
   }
 }

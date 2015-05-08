@@ -15,11 +15,13 @@ class LookupMerger(
 
   var results: Seq[SearchResultEntry] = Seq()
   var nResponses : Int = 0
+  var totalCount: Long = 0
   override def receive = {
-    case SearchResultSuccess(partitionResult) =>
+    case SearchResultSuccess(partitionResult, count) =>
       log.info("LookupMerger: receive SearchResultSuccess")
       results ++= partitionResult
       nResponses += 1
+      totalCount += count
       if(nResponses == nPartitions){
         log.info("LookUpMerger: All partitions provided, sending the data back")
         mergeAndReply
@@ -36,9 +38,10 @@ class LookupMerger(
   }
 
   def mergeAndReply: Unit = {
-    requestor ! SearchResultSuccess(
-      FindNBest(results.toStream, {x: SearchResultEntry => x.score}, 10).sortBy( - _.score)
-    )
+    val (res: Seq[SearchResultEntry], _) = FindNBest(results.toStream, {x: SearchResultEntry => x.score}, 10)
+    val sortedResult = res.sortBy( - _.score)
+
+    requestor ! SearchResultSuccess( sortedResult, totalCount )
     context.stop(self)
   }
 

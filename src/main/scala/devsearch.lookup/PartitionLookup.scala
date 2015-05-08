@@ -25,11 +25,13 @@ class PartitionLookup() extends Actor with ActorLogging {
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Set[String], lang: Seq[String]): Future[SearchResult] = {
-    FeatureDB.getMatchesFromDb(features, lang).map(
-      docHitsStream => SearchResultSuccess(
-        FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10).toSeq)
-    ).recover({
+  def getFeaturesAndScores(features: Set[String], lang: Set[String]): Future[SearchResult] = {
+
+    FeatureDB.getMatchesFromDb(features, lang).map {
+      docHitsStream =>
+      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10)
+      SearchResultSuccess(results.toSeq, count)
+    }.recover({
       case e =>
         val baos = new ByteArrayOutputStream()
         val ps = new PrintStream(baos)
@@ -52,29 +54,36 @@ class PartitionLookup() extends Actor with ActorLogging {
       // TODO: Cluster epsilon should maybe depend on the language of the file?
       //       Typically scala features will be much closer to each other than in Java...
 
-      val positions = streamOfHits.map(_.line.toInt).toArray
+      val positions = streamOfHits.map(_.line).toArray
       val clusters = DBSCAN(positions, 5.0, positions.length min 3)
-      val featuresByLine = streamOfHits map (h => (h.line -> h.feature))
+
+//      val featuresByLine = streamOfHits map (h => (h.line -> h.feature))
+      val featuresByLine = streamOfHits.groupBy(_.line)
 
       clusters.map { cluster =>
 
         val size = cluster.size
         val radius = (cluster.max - cluster.min) / 2.0 + 1 // avoid radius = 0
-      val densityScore = clamp(size / radius, 0, 5) / 5.0
+        val densityScore = clamp(size / radius, 0, 5) / 5.0
 
         val sizeScore = clamp(size, 0, 20) / 20.0
 
         //get all the different features of this cluster and devide it by nbQueryFeatures
-        val featureCount = featuresByLine.foldLeft(collection.mutable.Map[String, Int]()) ((map, curr) => {
-          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
-        })
-        val ratioOfMatches = featureCount.size.toDouble/nbQueryFeatures
+//        val featureCount = featuresByLine.foldLeft(collection.mutable.Map[String, Int]()) ((map, curr) => {
+//          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
+//        })
+
+        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(_.feature))
+
+        val ratioOfMatches = distinctFeatures.size.toDouble/nbQueryFeatures
 
         val finalScore =.6 * densityScore +.3 * sizeScore + .1 * ratioOfMatches
 
+        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "ratioOfMatches" -> ratioOfMatches)
+
         //        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
 
-        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, finalScore.toFloat)
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, distinctFeatures)
       }
     }
   }
