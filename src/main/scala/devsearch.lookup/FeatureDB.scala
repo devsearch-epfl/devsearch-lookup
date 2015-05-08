@@ -22,7 +22,7 @@ object FeatureDB {
    * @param features a list of feature index
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
-  def getMatchesFromDb(features: Set[String], langFilter: Seq[String]): Future[Stream[DocumentHits]] = {
+  def getMatchesFromDb(features: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
 
     val langs = langFilter.map(Languages.extension).flatten
     val query = if (!langs.isEmpty) {

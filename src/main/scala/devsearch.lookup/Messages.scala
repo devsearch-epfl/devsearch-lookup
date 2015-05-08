@@ -1,6 +1,6 @@
 package devsearch.lookup
 
-case class SearchRequest(features: Set[String], lang: Seq[String])
+case class SearchRequest(features: Set[String], lang: Set[String])
 
 sealed trait SearchResult
 case class SearchResultSuccess(entries: Seq[SearchResultEntry], count: Long) extends SearchResult

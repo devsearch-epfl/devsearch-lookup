@@ -25,7 +25,7 @@ class PartitionLookup() extends Actor with ActorLogging {
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Set[String], lang: Seq[String]): Future[SearchResult] = {
+  def getFeaturesAndScores(features: Set[String], lang: Set[String]): Future[SearchResult] = {
 
     FeatureDB.getMatchesFromDb(features, lang).map {
       docHitsStream =>
