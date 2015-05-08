@@ -1,7 +1,5 @@
 package devsearch.lookup
 
-import java.util.Random
-
 object FindNBest {
 
   //TODO which version is fastest?

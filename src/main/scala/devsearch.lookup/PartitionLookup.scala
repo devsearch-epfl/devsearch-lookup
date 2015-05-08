@@ -1,5 +1,7 @@
 package devsearch.lookup
 
+import java.io.{PrintStream, ByteArrayOutputStream}
+
 import akka.actor._
 import akka.pattern.pipe
 
@@ -16,19 +18,24 @@ class PartitionLookup() extends Actor with ActorLogging {
   log.info("Starting PartitionLookup")
 
   override def receive = {
-    case SearchRequest(features) =>
+    case SearchRequest(features, lang) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features) pipeTo sender
+      getFeaturesAndScores(features, lang) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Seq[String]): Future[SearchResult] = {
-    FeatureDB.getMatchesFromDb(features).map(
+  def getFeaturesAndScores(features: Set[String], lang: Seq[String]): Future[SearchResult] = {
+    FeatureDB.getMatchesFromDb(features, lang).map(
       docHitsStream => SearchResultSuccess(
         FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.length)), _.score, 10).toSeq)
     ).recover({
-      case e => SearchResultError(e.getMessage)
+      case e =>
+        val baos = new ByteArrayOutputStream()
+        val ps = new PrintStream(baos)
+        e.printStackTrace(ps)
+        ps.flush()
+        SearchResultError(baos.toString("UTF-8"))
     })
   }
 

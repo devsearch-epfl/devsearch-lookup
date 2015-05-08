@@ -1,6 +1,8 @@
 package devsearch.lookup
 
-import reactivemongo.bson.{BSON, BSONArray, BSONDocument, BSONDocumentReader}
+import reactivemongo.bson._
+
+import devsearch.parsers.Languages
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -20,21 +22,38 @@ object FeatureDB {
    * @param features a list of feature index
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
-  def getMatchesFromDb(features: Seq[String]): Future[Stream[DocumentHits]] = {
+  def getMatchesFromDb(features: Set[String], langFilter: Seq[String]): Future[Stream[DocumentHits]] = {
+
+    val langs = langFilter.map(Languages.extension).flatten
+    val query = if (!langs.isEmpty) {
+      BSONDocument(
+        "feature" -> BSONDocument(
+          "$in" -> features),
+        "file" -> BSONDocument(
+          "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+        ))
+    } else {
+      BSONDocument(
+        "feature" -> BSONDocument(
+          "$in" -> features))
+    }
+
+//    println(BSONDocument.pretty(query))
+
+
 
     /*
       Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename
       Example in the mongo shell:
-      db.features.aggregate([ {$match: { feature: { $in: ["className=ExampleModule", "typeReference=Type", "variableDeclaration=connectorId type=String", "variableDeclaration=type type=Type"]} }}, {$group: { _id: "$file", hits: { $push: { line: "$line", feature: "$feature"}}}}])
+      db.features.aggregate([ {$match: { feature: { $in: ["dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4"]} }}, {$group: { _id: "$file", hits: { $push: { line: "$line", feature: "$feature"}}}}])
       more info : http://reactivemongo.org/releases/0.10/documentation/advanced-topics/commands.html
      */
+
     val command = BSONDocument(
       "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
       "pipeline" -> BSONArray(
         BSONDocument(
-          "$match" -> BSONDocument(
-            "feature" -> BSONDocument(
-              "$in" -> features))),
+          "$match" -> query),
         BSONDocument(
           "$group" -> BSONDocument(
             "_id" -> "$file",

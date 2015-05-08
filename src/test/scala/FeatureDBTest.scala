@@ -8,7 +8,7 @@ import scala.concurrent.duration.Duration
 class FeatureDBTest extends FlatSpec with Matchers {
 
   "The FeatureDB" should "return 2 times 5 hits" in {
-    val results = FeatureDB.getMatchesFromDb(Seq("dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4", "dummyfeature5"))
+    val results = FeatureDB.getMatchesFromDb(Set("dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4", "dummyfeature5"), Seq())
     val list = Await.result(results, Duration.Inf)
 
     list.size should be (2)
@@ -16,7 +16,7 @@ class FeatureDBTest extends FlatSpec with Matchers {
   }
 
   it should "return the 2 times 2 hits" in {
-    val results = FeatureDB.getMatchesFromDb(Seq("dummyfeature1", "dummyfeature5"))
+    val results = FeatureDB.getMatchesFromDb(Set("dummyfeature1", "dummyfeature5"), Seq())
     val list = Await.result(results, Duration.Inf)
 
     list.size should be (2)
@@ -24,9 +24,23 @@ class FeatureDBTest extends FlatSpec with Matchers {
   }
 
   it should "return an empty stream when there is no match" in {
-    val results = FeatureDB.getMatchesFromDb(Seq("dummy feature", "I won't match anything", "oh yeah baby", "this list is now long enough"))
+    val results = FeatureDB.getMatchesFromDb(Set("dummy feature", "I won't match anything", "oh yeah baby", "this list is now long enough"), Seq())
     val list = Await.result(results, Duration.Inf)
 
     list.size should be (0)
+  }
+
+  it should "return an empty stream when no language match" in {
+    val results = FeatureDB.getMatchesFromDb(Set("featureforlanguage1", "featureforlanguage2"), Seq("Go"))
+    val list = Await.result(results, Duration.Inf)
+
+    list.size should be (0)
+  }
+
+  it should "return the correct amount of result for java and scala" in {
+    val results = FeatureDB.getMatchesFromDb(Set("featureforlanguage1", "featureforlanguage2"), Seq("Java", "JavaScript"))
+    val list = Await.result(results, Duration.Inf)
+
+    list.size should be (2)
   }
 }
