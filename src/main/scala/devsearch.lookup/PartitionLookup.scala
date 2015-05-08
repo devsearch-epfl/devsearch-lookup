@@ -26,10 +26,12 @@ class PartitionLookup() extends Actor with ActorLogging {
   }
 
   def getFeaturesAndScores(features: Set[String], lang: Seq[String]): Future[SearchResult] = {
-    FeatureDB.getMatchesFromDb(features, lang).map(
-      docHitsStream => SearchResultSuccess(
-        FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10).toSeq)
-    ).recover({
+
+    FeatureDB.getMatchesFromDb(features, lang).map {
+      docHitsStream =>
+      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10)
+      SearchResultSuccess(results.toSeq, count)
+    }.recover({
       case e =>
         val baos = new ByteArrayOutputStream()
         val ps = new PrintStream(baos)
@@ -60,7 +62,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         val size = cluster.size
         val radius = (cluster.max - cluster.min) / 2.0 + 1 // avoid radius = 0
-      val densityScore = clamp(size / radius, 0, 5) / 5.0
+        val densityScore = clamp(size / radius, 0, 5) / 5.0
 
         val sizeScore = clamp(size, 0, 20) / 20.0
 
@@ -74,7 +76,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         //        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
 
-        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, finalScore.toFloat)
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat)
       }
     }
   }
