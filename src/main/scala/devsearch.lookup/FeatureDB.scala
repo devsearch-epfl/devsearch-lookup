@@ -1,6 +1,6 @@
 package devsearch.lookup
 
-import reactivemongo.bson.{BSON, BSONArray, BSONDocument, BSONDocumentReader}
+import reactivemongo.bson._
 
 import devsearch.parsers.Languages
 
@@ -22,19 +22,26 @@ object FeatureDB {
    * @param features a list of feature index
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
-  def getMatchesFromDb(features: Set[String], lang: Seq[String]): Future[Stream[DocumentHits]] = {
+  def getMatchesFromDb(features: Set[String], langFilter: Seq[String]): Future[Stream[DocumentHits]] = {
+
+    val langs = langFilter.map(Languages.extension).flatten
+    val query = if (!langs.isEmpty) {
+      BSONDocument(
+        "feature" -> BSONDocument(
+          "$in" -> features),
+        "file" -> BSONDocument(
+          "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+        ))
+    } else {
+      BSONDocument(
+        "feature" -> BSONDocument(
+          "$in" -> features))
+    }
+
+//    println(BSONDocument.pretty(query))
 
 
-    val fileLangCondition =
-      BSONDocument( "$or" ->
-        BSONArray(lang.map(Languages.extension).map {
-          language =>
-            BSONDocument(
-              "$regex" -> ("/."+language+"$/g")
-            )
-          }
-        )
-      )
+
     /*
       Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename
       Example in the mongo shell:
@@ -46,10 +53,7 @@ object FeatureDB {
       "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
       "pipeline" -> BSONArray(
         BSONDocument(
-          "$match" -> BSONDocument(
-            "feature" -> BSONDocument(
-              "$in" -> features),
-            "file" -> fileLangCondition)),
+          "$match" -> query),
         BSONDocument(
           "$group" -> BSONDocument(
             "_id" -> "$file",

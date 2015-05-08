@@ -31,14 +31,14 @@ class FeatureDBTest extends FlatSpec with Matchers {
   }
 
   it should "return an empty stream when no language match" in {
-    val results = FeatureDB.getMatchesFromDb(Set("dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4", "dummyfeature5"), Seq("bullshitLanguage"))
+    val results = FeatureDB.getMatchesFromDb(Set("featureforlanguage1", "featureforlanguage2"), Seq("Go"))
     val list = Await.result(results, Duration.Inf)
 
     list.size should be (0)
   }
 
   it should "return the correct amount of result for java and scala" in {
-    val results = FeatureDB.getMatchesFromDb(Set("featureforlanguage1", "featureforlanguage2"), Seq("java", "javascript"))
+    val results = FeatureDB.getMatchesFromDb(Set("featureforlanguage1", "featureforlanguage2"), Seq("Java", "JavaScript"))
     val list = Await.result(results, Duration.Inf)
 
     list.size should be (2)
