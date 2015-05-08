@@ -28,7 +28,7 @@ class PartitionLookup() extends Actor with ActorLogging {
   def getFeaturesAndScores(features: Set[String], lang: Seq[String]): Future[SearchResult] = {
     FeatureDB.getMatchesFromDb(features, lang).map(
       docHitsStream => SearchResultSuccess(
-        FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.length)), _.score, 10).toSeq)
+        FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10).toSeq)
     ).recover({
       case e =>
         val baos = new ByteArrayOutputStream()
