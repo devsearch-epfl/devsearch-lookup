@@ -16,13 +16,28 @@ case class DocumentHits(location: Location, hits: Stream[Hit])
 object FeatureDB {
 
   val FEATURE_COLLECTION_NAME = "features"
+  val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ" //TODO same as in someone's? script
+  val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ" //TODO
+
+  /**
+   * fetches number of occurrences from DB
+   * @param collection name of collection to lookup
+   * @param features set of features to get counts for
+   * @param langFilter set of languages to filter by (empty means all languages)
+   * @return A map from feature in `features` to number of occurrences across all languages in `langFilter`
+   */
+  def getFeatureOccurrenceCount(collection: String, features: Set[String], langFilter: Set[String]): Map[String, Long] = {
+    features.map(x => (x, 1L)).toMap // FIXME
+  }
 
   /**
    * fetches matches from the DB
-   * @param features a list of feature index
+   * @param rareFeatures a set of rare features to select by (union), nonempty
+   * @param commonFeatures a set of common features to filter by, may be empty
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
-  def getMatchesFromDb(features: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
+  def getMatchesFromDb(rareFeatures: Set[String], commonFeatures: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
+    val features = rareFeatures // FIXME
 
     val langs = langFilter.map(Languages.extension).flatten
     val query = if (!langs.isEmpty) {
@@ -39,8 +54,6 @@ object FeatureDB {
     }
 
 //    println(BSONDocument.pretty(query))
-
-
 
     /*
       Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename

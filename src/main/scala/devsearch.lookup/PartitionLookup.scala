@@ -17,6 +17,8 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   log.info("Starting PartitionLookup")
 
+  val OCCURENCE_THRESHOLD: Long = 10000
+
   override def receive = {
     case SearchRequest(features, lang) =>
       log.info("PartitionLookup: receive SearchRequest")
@@ -26,8 +28,27 @@ class PartitionLookup() extends Actor with ActorLogging {
   }
 
   def getFeaturesAndScores(features: Set[String], lang: Set[String]): Future[SearchResult] = {
+    if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
-    FeatureDB.getMatchesFromDb(features, lang).map {
+    val localFeatureOccs = FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, lang)
+    val globalFeatureOccs = FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, lang)
+    val sortedFeatures = features.toList.sortBy(localFeatureOccs)
+
+    // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
+    var resCount: Long = localFeatureOccs(sortedFeatures.head)
+    var rareFeatures: Set[String] = Set(sortedFeatures.head)
+    var commonFeatures: Set[String] = Set()
+
+    for (feature <- sortedFeatures.tail) {
+      if (resCount + localFeatureOccs(feature) <= OCCURENCE_THRESHOLD) {
+        resCount += localFeatureOccs(feature)
+        rareFeatures += feature
+      } else {
+        commonFeatures += feature
+      }
+    }
+
+    FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, lang).map {
       docHitsStream =>
       val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10)
       SearchResultSuccess(results.toSeq, count)
