@@ -23,17 +23,18 @@ object FeatureDB {
    * fetches number of occurrences from DB
    * @param collection name of collection to lookup
    * @param features set of features to get counts for
-   * @param langFilter set of languages to filter by (empty means all languages)
-   * @return A map from feature in `features` to number of occurrences across all languages in `langFilter`
+   * @param languages set of languages to get counts for (empty means all languages)
+   * @return A map from (feature, language) pair to number of occurrences
    */
-  def getFeatureOccurrenceCount(collection: String, features: Set[String], langFilter: Set[String]): Map[String, Long] = {
-    features.map(x => (x, 1L)).toMap // FIXME
+  def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Map[(String, String), Long] = {
+    features.flatMap(x => languages.map(l => ((x,l), 1L))).toMap // FIXME
   }
 
   /**
    * fetches matches from the DB
    * @param rareFeatures a set of rare features to select by (union), nonempty
    * @param commonFeatures a set of common features to filter by, may be empty
+   * @param langFilter a set of languages which should be included (empty means all languages)
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
   def getMatchesFromDb(rareFeatures: Set[String], commonFeatures: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
