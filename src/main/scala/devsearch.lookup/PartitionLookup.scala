@@ -4,6 +4,7 @@ import java.io.{PrintStream, ByteArrayOutputStream}
 
 import akka.actor._
 import akka.pattern.pipe
+import devsearch.parsers.Languages
 
 import scala.concurrent.Future
 
@@ -53,7 +54,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
     FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
       docHitsStream =>
-      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10)
+      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, 10)
       SearchResultSuccess(results.toSeq, count)
     }.recover({
       case e =>
@@ -67,10 +68,13 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
 
-  def getScores(entry: DocumentHits, nbQueryFeatures: Int): Iterable[SearchResultEntry] = entry match {
+  def rarityWeightFunction(x: Long): Double = 1/(1+Math.exp((Math.sqrt(x)-20)/10))
 
+  def getScores(entry: DocumentHits, features: Set[String], featureLangOccs: Map[(String,String), Long]): Iterable[SearchResultEntry] = entry match {
 
     case DocumentHits(location, streamOfHits) => {
+
+      val language = Languages.guess(location.file).getOrElse("")
 
       //      val scoreFuture = RankingDB.getRanking(location)
       //      val score = Await.result(scoreFuture, Duration("100ms"))
@@ -99,13 +103,13 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(_.feature))
 
-        val ratioOfMatches = distinctFeatures.size.toDouble/nbQueryFeatures
+        val ratioOfMatches = distinctFeatures.size.toDouble/features.size
 
-        val finalScore =.6 * densityScore +.3 * sizeScore + .1 * ratioOfMatches
+        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
 
-        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "ratioOfMatches" -> ratioOfMatches)
+        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches
 
-        //        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
+        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches)
 
         SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, distinctFeatures)
       }
