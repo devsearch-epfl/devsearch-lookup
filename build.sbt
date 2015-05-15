@@ -30,3 +30,5 @@ libraryDependencies ++= Seq(
 Revolver.settings
 
 parallelExecution in Test := false
+
+target in Compile in doc := baseDirectory.value / "api"
