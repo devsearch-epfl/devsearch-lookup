@@ -27,7 +27,7 @@ class LookupMerger(
         mergeAndReply
       }
     case SearchResultError(message) =>
-      requestor ! SearchResultError(s"one partition returned an error: $message")
+      requestor ! SearchResultError(s"One partition returned an error: $message")
       context.stop(self)
     case ReceiveTimeout =>
       log.info("LookUpMerger: Timeout expires")

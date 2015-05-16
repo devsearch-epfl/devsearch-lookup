@@ -24,46 +24,49 @@ class PartitionLookup() extends Actor with ActorLogging {
     case SearchRequest(features, lang) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features, lang) pipeTo sender
+      getFeaturesAndScores(features, lang.map(_.toLowerCase)) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
   def getFeaturesAndScores(features: Set[String], languages: Set[String]): Future[SearchResult] = {
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
-    val localFeatureLangOccs = FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages)
-    val globalFeatureLangOccs = FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages)
+    for {
+      localFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      globalFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      matches <- {
+        val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
-    val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
+        val sortedFeatures = features.toList.sortBy(localFeatureOccs)
 
-    val sortedFeatures = features.toList.sortBy(localFeatureOccs)
+        // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
+        var resCount: Long = localFeatureOccs(sortedFeatures.head)
+        var rareFeatures: Set[String] = Set(sortedFeatures.head)
+        var commonFeatures: Set[String] = Set()
 
-    // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
-    var resCount: Long = localFeatureOccs(sortedFeatures.head)
-    var rareFeatures: Set[String] = Set(sortedFeatures.head)
-    var commonFeatures: Set[String] = Set()
+        for (feature <- sortedFeatures.tail) {
+          if (resCount + localFeatureOccs(feature) <= OCCURENCE_THRESHOLD) {
+            resCount += localFeatureOccs(feature)
+            rareFeatures += feature
+          } else {
+            commonFeatures += feature
+          }
+        }
 
-    for (feature <- sortedFeatures.tail) {
-      if (resCount + localFeatureOccs(feature) <= OCCURENCE_THRESHOLD) {
-        resCount += localFeatureOccs(feature)
-        rareFeatures += feature
-      } else {
-        commonFeatures += feature
+        FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
+          docHitsStream =>
+          val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, 10)
+          SearchResultSuccess(results.toSeq, count)
+        }.recover({
+          case e =>
+            val baos = new ByteArrayOutputStream()
+            val ps = new PrintStream(baos)
+            e.printStackTrace(ps)
+            ps.flush()
+            SearchResultError(baos.toString("UTF-8"))
+        })
       }
-    }
-
-    FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
-      docHitsStream =>
-      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, 10)
-      SearchResultSuccess(results.toSeq, count)
-    }.recover({
-      case e =>
-        val baos = new ByteArrayOutputStream()
-        val ps = new PrintStream(baos)
-        e.printStackTrace(ps)
-        ps.flush()
-        SearchResultError(baos.toString("UTF-8"))
-    })
+    } yield matches
   }
 
   def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x

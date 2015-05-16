@@ -26,8 +26,31 @@ object FeatureDB {
    * @param languages set of languages to get counts for (empty means all languages)
    * @return A map from (feature, language) pair to number of occurrences
    */
-  def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Map[(String, String), Long] = {
-    features.flatMap(x => languages.map(l => ((x,l), 1L))).toMap // FIXME
+  def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Future[Map[(String, String), Long]] = {
+    val command = BSONDocument(
+      "aggregate" -> collection,
+      "pipeline" -> BSONArray(
+        BSONDocument(
+          "$match" -> BSONDocument(
+            "feature" -> BSONDocument("$in" -> features),
+            "language" -> BSONDocument("$in" -> languages)
+          )
+        )
+      )
+    )
+
+    val futureResult = RawDB.run(command)
+
+    // convert BSON result to a simple map
+    futureResult.map(result => {
+      result.getAs[BSONArray]("result").get.values.map{
+        case entry: BSONDocument =>
+          (
+            entry.getAs[String]("feature").getOrElse(throw new Exception("malformed data: feature key not present")),
+            entry.getAs[String]("language").getOrElse(throw new Exception("malformed data: language key not present"))
+          ) -> entry.getAs[Int]("count").getOrElse(throw new Exception("malformed data: count")).toLong
+      }.toMap
+    })
   }
 
   /**
