@@ -15,7 +15,12 @@ cat partitionCounts/bucketX/* | mongoimport --db devsearch --collection local_oc
 ```
 * Create the index on the feature value:
 
-`mongo --eval "db.features.createIndex( { feature: 1 } )" devsearch`
+```
+mongo --eval "db.features.createIndex( { feature: 1 } )" devsearch
+mongo --eval "db.features.createIndex( { file: 1 } )" devsearch
+mongo --eval "db.global_occ.createIndex( { feature: 1 } )" devsearch
+mongo --eval "db.local_occ.createIndex( { feature: 1 } )" devsearch
+```
 
 Note: you can check the last step with
 
