@@ -19,6 +19,7 @@ class PartitionLookup() extends Actor with ActorLogging {
   log.info("Starting PartitionLookup")
 
   val OCCURENCE_THRESHOLD: Long = 10000
+  val noCountDefaultValue: Long = 0
 
   override def receive = {
     case SearchRequest(features, lang) =>
@@ -37,7 +38,7 @@ class PartitionLookup() extends Actor with ActorLogging {
       matches <- {
         val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
-        val sortedFeatures = features.toList.sortBy(localFeatureOccs)
+        val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
 
         // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
         var resCount: Long = localFeatureOccs(sortedFeatures.head)

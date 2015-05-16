@@ -31,9 +31,14 @@ object FeatureDB {
       "aggregate" -> collection,
       "pipeline" -> BSONArray(
         BSONDocument(
-          "$match" -> BSONDocument(
-            "feature" -> BSONDocument("$in" -> features),
-            "language" -> BSONDocument("$in" -> languages)
+          "$match" -> (
+            BSONDocument(
+              "feature" -> BSONDocument("$in" -> features)
+            ) ++ (
+              if (!languages.isEmpty) BSONDocument(
+                "language" -> BSONDocument("$in" -> languages)
+              ) else BSONDocument()
+            )
           )
         )
       )
@@ -64,18 +69,19 @@ object FeatureDB {
     val features = rareFeatures // FIXME
 
     val langs = langFilter.map(Languages.extension).flatten
-    val query = if (!langs.isEmpty) {
-      BSONDocument(
-        "feature" -> BSONDocument(
-          "$in" -> features),
-        "file" -> BSONDocument(
-          "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
-        ))
-    } else {
-      BSONDocument(
-        "feature" -> BSONDocument(
-          "$in" -> features))
-    }
+    val query = BSONDocument(
+      "feature" -> (
+        BSONDocument(
+          "$in" -> features
+        ) ++ (
+          if (!langs.isEmpty) BSONDocument(
+            "file" -> BSONDocument(
+              "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+            )
+          ) else BSONDocument()
+        )
+      )
+    )
 
 //    println(BSONDocument.pretty(query))
 
