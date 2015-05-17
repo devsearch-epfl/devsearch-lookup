@@ -5,6 +5,7 @@ import java.io.{PrintStream, ByteArrayOutputStream}
 import akka.actor._
 import akka.pattern.pipe
 import devsearch.parsers.Languages
+import devsearch.features.Feature
 
 import scala.concurrent.Future
 
@@ -22,10 +23,10 @@ class PartitionLookup() extends Actor with ActorLogging {
   val noCountDefaultValue: Long = 0
 
   override def receive = {
-    case SearchRequest(features, lang) =>
+    case SearchRequest(features, lang, start, len) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features, lang.map(_.toLowerCase)) pipeTo sender
+      getFeaturesAndScores(features.map(_.key), lang.map(_.toLowerCase)) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
@@ -105,11 +106,11 @@ class PartitionLookup() extends Actor with ActorLogging {
 //          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
 //        })
 
-        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(_.feature))
+        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(e => Feature.parse(e.feature)))
 
         val ratioOfMatches = distinctFeatures.size.toDouble/features.size
 
-        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
+        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature.key, language), 1L))).sum
 
         val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches
 
