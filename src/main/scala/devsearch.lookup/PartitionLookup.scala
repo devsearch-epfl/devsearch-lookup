@@ -106,7 +106,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 //          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
 //        })
 
-        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(e => Feature.parse(e.feature)))
+        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(e => Feature.parse(s"${e.feature},owner/repo/file.java,${e.line}")))
 
         val ratioOfMatches = distinctFeatures.size.toDouble/features.size
 

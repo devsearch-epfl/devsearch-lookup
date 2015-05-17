@@ -3,4 +3,4 @@ script:
     - sbt clean update compile
 jdk:
     - openjdk7
-    - openjdk6
+    - oraclejdk8
