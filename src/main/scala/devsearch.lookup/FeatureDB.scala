@@ -72,7 +72,7 @@ object FeatureDB {
     val query = BSONDocument(
       "feature" -> (
         BSONDocument(
-          "$in" -> features
+          "$in" -> rareFeatures
         ) ++ (
           if (!langs.isEmpty) BSONDocument(
             "file" -> BSONDocument(
@@ -92,65 +92,196 @@ object FeatureDB {
       more info : http://reactivemongo.org/releases/0.10/documentation/advanced-topics/commands.html
      */
 
-    val command = BSONDocument(
-      "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-      "pipeline" -> BSONArray(
-        BSONDocument(
-          "$match" -> query),
-        BSONDocument(
-          "$group" -> BSONDocument(
-            "_id" -> "$file",
-            "hits" -> BSONDocument(
-              "$push" -> BSONDocument(
-                "line" -> "$line",
-                "feature" -> "$feature"))))
+//    val command = BSONDocument(
+//      "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
+//      "pipeline" -> BSONArray(
+//        BSONDocument(
+//          "$match" -> query),
+//        BSONDocument(
+//          "$group" -> BSONDocument(
+//            "_id" -> "$file",
+//            "hits" -> BSONDocument(
+//              "$push" -> BSONDocument(
+//                "line" -> "$line",
+//                "feature" -> "$feature"))))
+//      )
+//    )
+
+    val rareMatchesCommand = BSONDocument(
+      "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
+      "key" -> "$file",
+      "query" -> BSONDocument(
+          "$match" -> query)
       )
-    )
 
-    val futureResult: Future[BSONDocument] = RawDB.run(command)
+    val futureRareMatchResult = RawDB.run(rareMatchesCommand)
 
-    implicit object HitReader extends BSONDocumentReader[Hit] {
-      def read(doc: BSONDocument): Hit = {
-        Hit(
-          doc.getAs[Int]("line").get,
-          doc.getAs[String]("feature").get
-        )
-      }
-    }
-
-    implicit object DocumentHitsReader extends BSONDocumentReader[DocumentHits] {
-      def read(doc: BSONDocument): DocumentHits = {
-
-        val repoAndFile = doc.getAs[String]("_id").get
-        val firstSlash = repoAndFile.indexOf("/")
-        val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
-
-        val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
-          docArray => docArray.values.map{
-            docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
-          }.flatten
-        }.getOrElse(Stream())
+    for  {
+      res <- futureRareMatchResult
+      answers <- {
+        val rareMatchResult: Stream[String] = res.getAs[BSONArray]("result").get.values.map{
+          // no need for asInstanceOf ?
+          case entry: BSONString => entry.value
+        }
 
 
-        DocumentHits(
-          Location(
-            repoAndFile.substring(0, firstSlash),
-            repoAndFile.substring(firstSlash + 1, secondSlash),
-            repoAndFile.substring(secondSlash + 1)
-          ),
-          hitStream
-        )
-      }
-    }
-
-    futureResult.map {
-      list => list.getAs[BSONArray]("result").map {
-        docArray => docArray.values.map {
-          docOption => docOption.seeAsOpt[BSONDocument].map (
-            BSON.readDocument[DocumentHits]
+        val fetchAllFeatures = BSONDocument(
+          "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
+          "pipeline" -> BSONArray(
+            BSONDocument(
+              "$match" -> (
+                BSONDocument(
+                  "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
+                  "file" -> BSONDocument( "$in" -> rareMatchResult )
+                ) ++ (
+                  if (langs.nonEmpty) BSONDocument(
+                    "file" -> BSONDocument(
+                      "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+                    )
+                  ) else BSONDocument()
+                  )
+                )
+            ),
+            BSONDocument(
+              "$group" -> BSONDocument(
+                "_id" -> "$file",
+                "hits" -> BSONDocument(
+                  "$push" -> BSONDocument(
+                    "line" -> "$line",
+                    "feature" -> "$feature"))))
           )
-        }.flatten
-      }.getOrElse(Stream())
-    }
+        )
+
+        val futureResult: Future[BSONDocument] = RawDB.run(fetchAllFeatures)
+
+        implicit object HitReader extends BSONDocumentReader[Hit] {
+          def read(doc: BSONDocument): Hit = {
+            Hit(
+              doc.getAs[Int]("line").get,
+              doc.getAs[String]("feature").get
+            )
+          }
+        }
+
+        implicit object DocumentHitsReader extends BSONDocumentReader[DocumentHits] {
+          def read(doc: BSONDocument): DocumentHits = {
+
+            val repoAndFile = doc.getAs[String]("_id").get
+            val firstSlash = repoAndFile.indexOf("/")
+            val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
+
+            val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
+              docArray => docArray.values.map{
+                docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
+              }.flatten
+            }.getOrElse(Stream())
+
+
+            DocumentHits(
+              Location(
+                repoAndFile.substring(0, firstSlash),
+                repoAndFile.substring(firstSlash + 1, secondSlash),
+                repoAndFile.substring(secondSlash + 1)
+              ),
+              hitStream
+            )
+          }
+        }
+
+        futureResult.map {
+          list => list.getAs[BSONArray]("result").map {
+            docArray => docArray.values.map {
+              docOption => docOption.seeAsOpt[BSONDocument].map (
+                BSON.readDocument[DocumentHits]
+              )
+            }.flatten
+          }.getOrElse(Stream())
+        }
+      }
+    } yield answers
+
+//    convert BSON result to a simple map
+//    futureRareMatchResult.map(
+//      res => {
+//        val rareMatchResult: Stream[String] = res.getAs[BSONArray]("result").get.values.map{
+//          // no need for asInstanceOf ?
+//          case entry: BSONString => entry.value
+//        }
+//
+//
+//        val fetchAllFeatures = BSONDocument(
+//          "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
+//          "pipeline" -> BSONArray(
+//            BSONDocument(
+//              "$match" -> (
+//                BSONDocument(
+//                  "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
+//                  "file" -> BSONDocument( "$in" -> rareMatchResult )
+//                 ) ++ (
+//                  if (langs.nonEmpty) BSONDocument(
+//                    "file" -> BSONDocument(
+//                      "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+//                    )
+//                  ) else BSONDocument()
+//                )
+//              )
+//            ),
+//            BSONDocument(
+//              "$group" -> BSONDocument(
+//                "_id" -> "$file",
+//                "hits" -> BSONDocument(
+//                  "$push" -> BSONDocument(
+//                    "line" -> "$line",
+//                    "feature" -> "$feature"))))
+//          )
+//        )
+//
+//        val futureResult: Future[BSONDocument] = RawDB.run(fetchAllFeatures)
+//
+//        implicit object HitReader extends BSONDocumentReader[Hit] {
+//          def read(doc: BSONDocument): Hit = {
+//            Hit(
+//              doc.getAs[Int]("line").get,
+//              doc.getAs[String]("feature").get
+//            )
+//          }
+//        }
+//
+//        implicit object DocumentHitsReader extends BSONDocumentReader[DocumentHits] {
+//          def read(doc: BSONDocument): DocumentHits = {
+//
+//            val repoAndFile = doc.getAs[String]("_id").get
+//            val firstSlash = repoAndFile.indexOf("/")
+//            val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
+//
+//            val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
+//              docArray => docArray.values.map{
+//                docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
+//              }.flatten
+//            }.getOrElse(Stream())
+//
+//
+//            DocumentHits(
+//              Location(
+//                repoAndFile.substring(0, firstSlash),
+//                repoAndFile.substring(firstSlash + 1, secondSlash),
+//                repoAndFile.substring(secondSlash + 1)
+//              ),
+//              hitStream
+//            )
+//          }
+//        }
+//
+//        futureResult.map {
+//          list => list.getAs[BSONArray]("result").map {
+//            docArray => docArray.values.map {
+//              docOption => docOption.seeAsOpt[BSONDocument].map (
+//                BSON.readDocument[DocumentHits]
+//              )
+//            }.flatten
+//          }.getOrElse(Stream())
+//        }
+//      }
+//    )
   }
 }
