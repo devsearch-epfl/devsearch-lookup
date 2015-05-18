@@ -46,6 +46,8 @@ class PartitionLookup() extends Actor with ActorLogging {
         var rareFeatures: Set[String] = Set()
         var commonFeatures: Set[String] = Set()
         log.info(s" Sorted features $sortedFeatures")
+        log.info(s" Local counts $localFeatureOccs")
+
         for (feature <- sortedFeatures) {
           if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
             resCount += localFeatureOccs.get(feature).getOrElse(0L)
