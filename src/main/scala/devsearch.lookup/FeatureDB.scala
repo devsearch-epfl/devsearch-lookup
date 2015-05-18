@@ -7,6 +7,8 @@ import devsearch.parsers.Languages
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import reactivemongo.core.commands.RawCommand
+
 case class Hit(line: Int, feature: String)
 case class DocumentHits(location: Location, hits: Stream[Hit])
 
@@ -16,8 +18,8 @@ case class DocumentHits(location: Location, hits: Stream[Hit])
 object FeatureDB {
 
   val FEATURE_COLLECTION_NAME = "features"
-  val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ" //TODO same as in someone's? script
-  val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ" //TODO
+  val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ"
+  val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ"
 
   /**
    * fetches number of occurrences from DB
@@ -27,31 +29,26 @@ object FeatureDB {
    * @return A map from (feature, language) pair to number of occurrences
    */
   def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Future[Map[(String, String), Long]] = {
-    val command = BSONDocument(
-      "find" -> collection,
-      "query" -> (
-        BSONDocument(
-          "feature" -> BSONDocument("$in" -> features)
-        ) ++ (
-          if (!languages.isEmpty) BSONDocument(
-            "language" -> BSONDocument("$in" -> languages)
-          ) else BSONDocument()
-        )
+    val query = (
+      BSONDocument(
+        "feature" -> BSONDocument("$in" -> features)
+      ) ++ (
+        if (!languages.isEmpty) BSONDocument(
+          "language" -> BSONDocument("$in" -> languages)
+        ) else BSONDocument()
       )
     )
 
-    val futureResult = RawDB.run(command)
+    val futureResult = RawDB.db(collection).find(query).cursor[BSONDocument].collect[List]()
 
-    // convert BSON result to a simple map
-    futureResult.map(result => {
-      result.getAs[BSONArray]("result").get.values.map{
-        case entry: BSONDocument =>
-          (
-            entry.getAs[String]("feature").getOrElse(throw new Exception("malformed data: feature key not present")),
-            entry.getAs[String]("language").getOrElse(throw new Exception("malformed data: language key not present"))
-          ) -> entry.getAs[Int]("count").getOrElse(throw new Exception("malformed data: count")).toLong
-      }.toMap
-    })
+    futureResult.map(
+      _.map(feature =>
+        (
+          feature.getAs[String]("feature").getOrElse(throw new Exception("malformed data: feature key not present")),
+          feature.getAs[String]("language").getOrElse(throw new Exception("malformed data: language key not present"))
+        ) -> feature.getAs[Int]("count").getOrElse(throw new Exception("malformed data: count")).toLong
+      ).toMap
+    )
   }
 
   /**
@@ -62,8 +59,6 @@ object FeatureDB {
    * @return A stream of ("owner/repo/path/to/file", List((featureIndex, lineNb)))
    */
   def getMatchesFromDb(rareFeatures: Set[String], commonFeatures: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
-    val features = rareFeatures // FIXME
-
     val langs = langFilter.map(Languages.extension).flatten
     val query = BSONDocument(
       "feature" -> (
@@ -81,16 +76,14 @@ object FeatureDB {
 
     val rareMatchesCommand = BSONDocument(
       "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-      "key" -> "$file",
-      "query" -> BSONDocument(
-        "$match" -> query)
-      )
+      "key" -> "file",
+      "query" -> query
+    )
 
     for {
-      rareMatches <- RawDB.run(rareMatchesCommand)
+      rareMatches <- RawDB.db.command(RawCommand(rareMatchesCommand))
       answers <- {
-        val rareMatchResult: Stream[String] = rareMatches.getAs[BSONArray]("result").get.values.map{
-          // no need for asInstanceOf ?
+        val rareMatchResult: Stream[String] = rareMatches.getAs[BSONArray]("values").get.values.map {
           case entry: BSONString => entry.value
         }
 
@@ -121,7 +114,7 @@ object FeatureDB {
           )
         )
 
-        val futureResult: Future[BSONDocument] = RawDB.run(fetchAllFeatures)
+        val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 
         implicit object HitReader extends BSONDocumentReader[Hit] {
           def read(doc: BSONDocument): Hit = {
