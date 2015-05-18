@@ -30,15 +30,13 @@ object FeatureDB {
    * @return A map from (feature, language) pair to number of occurrences
    */
   def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Future[Map[(String, String), Long]] = {
-    val query = (
-      BSONDocument(
+    val query = BSONDocument(
         "feature" -> BSONDocument("$in" -> features)
       ) ++ (
-        if (!languages.isEmpty) BSONDocument(
+        if (languages.nonEmpty) BSONDocument(
           "language" -> BSONDocument("$in" -> languages)
         ) else BSONDocument()
       )
-    )
 
     val futureResult = RawDB.db(collection).find(query).cursor[BSONDocument].collect[List]()
 
@@ -62,18 +60,17 @@ object FeatureDB {
   def getMatchesFromDb(rareFeatures: Set[String], commonFeatures: Set[String], langFilter: Set[String]): Future[Stream[DocumentHits]] = {
     val langs = langFilter.map(Languages.extension).flatten
     val query = BSONDocument(
-      "feature" -> (
-        BSONDocument(
-          "$in" -> (if (!rareFeatures.isEmpty) rareFeatures else commonFeatures)
-        ) ++ (
-          if (!langs.isEmpty) BSONDocument(
-            "file" -> BSONDocument(
-              "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
-            )
-          ) else BSONDocument()
+        "feature" -> BSONDocument(
+          "$in" -> (if (rareFeatures.nonEmpty) rareFeatures else commonFeatures)
         )
+      ) ++ (
+        if (langs.nonEmpty) BSONDocument(
+          "file" -> BSONDocument(
+            "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
+          )
+        ) else BSONDocument()
       )
-    )
+
 
     val limitedFilesCommand = BSONDocument(
       "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
