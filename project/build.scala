@@ -4,6 +4,6 @@ object MyBuild extends Build{
 
   lazy val root = Project("root", file(".")).dependsOn(astProject)
   lazy val astProject = RootProject(uri("git://github.com/devsearch-epfl/devsearch-ast.git#" + astProjectCommit))
-  lazy val astProjectCommit = "8b028a9ac78b01680a22994b08aef1436ac1382b"
+  lazy val astProjectCommit = "cdffdba2bc77e344eafa0252ccbd04d299933243"
 
 }

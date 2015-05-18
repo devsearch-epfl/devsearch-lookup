@@ -14,7 +14,7 @@ object RankingDB {
 
   val RANKING_COLLECTION_NAME = "rankings"
 
-  val collection = RawDB.getCollection(RANKING_COLLECTION_NAME)
+  val collection = RawDB.db(RANKING_COLLECTION_NAME)
 
   def getRanking(location: Location): Future[Double] = {
 

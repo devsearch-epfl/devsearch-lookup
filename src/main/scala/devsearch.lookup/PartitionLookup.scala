@@ -4,6 +4,8 @@ import java.io.{PrintStream, ByteArrayOutputStream}
 
 import akka.actor._
 import akka.pattern.pipe
+import devsearch.parsers.Languages
+import devsearch.features.Feature
 
 import scala.concurrent.Future
 
@@ -17,36 +19,68 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   log.info("Starting PartitionLookup")
 
+  val STAGE_1_LIMIT: Long = 10000
+  val noCountDefaultValue: Long = 0
+
   override def receive = {
-    case SearchRequest(features, lang) =>
+    case SearchRequest(features, lang, start, len) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features, lang) pipeTo sender
+      getFeaturesAndScores(features.map(_.key), lang, len, start) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Set[String], lang: Set[String]): Future[SearchResult] = {
+  def getFeaturesAndScores(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
+    if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
-    FeatureDB.getMatchesFromDb(features, lang).map {
-      docHitsStream =>
-      val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features.size)), _.score, 10)
-      SearchResultSuccess(results.toSeq, count)
-    }.recover({
-      case e =>
-        val baos = new ByteArrayOutputStream()
-        val ps = new PrintStream(baos)
-        e.printStackTrace(ps)
-        ps.flush()
-        SearchResultError(baos.toString("UTF-8"))
-    })
+    for {
+      localFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      globalFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      matches <- {
+        val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
+
+        val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
+
+        // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
+        var resCount: Long = 0L
+        var rareFeatures: Set[String] = Set()
+        var commonFeatures: Set[String] = Set()
+        log.info(s" Sorted features $sortedFeatures")
+        for (feature <- sortedFeatures) {
+          if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
+            resCount += localFeatureOccs.get(feature).getOrElse(0L)
+            rareFeatures += feature
+          } else {
+            commonFeatures += feature
+          }
+        }
+        log.info(s"Common features : $commonFeatures")
+        log.info(s"Rare features : $rareFeatures")
+        FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
+          docHitsStream =>
+          val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+          SearchResultSuccess(results.drop(from).toSeq, count)
+        }.recover({
+          case e =>
+            val baos = new ByteArrayOutputStream()
+            val ps = new PrintStream(baos)
+            e.printStackTrace(ps)
+            ps.flush()
+            SearchResultError(baos.toString("UTF-8"))
+        })
+      }
+    } yield matches
   }
 
   def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
 
-  def getScores(entry: DocumentHits, nbQueryFeatures: Int): Iterable[SearchResultEntry] = entry match {
+  def rarityWeightFunction(x: Long): Double = 1/(1+Math.exp((Math.sqrt(x)-20)/10))
 
+  def getScores(entry: DocumentHits, features: Set[String], featureLangOccs: Map[(String,String), Long]): Iterable[SearchResultEntry] = entry match {
 
     case DocumentHits(location, streamOfHits) => {
+
+      val language = Languages.guess(location.file).getOrElse("")
 
       //      val scoreFuture = RankingDB.getRanking(location)
       //      val score = Await.result(scoreFuture, Duration("100ms"))
@@ -73,17 +107,19 @@ class PartitionLookup() extends Actor with ActorLogging {
 //          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
 //        })
 
-        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(_.feature))
+        val features = cluster.flatMap(line => featuresByLine(line)).map(e => Feature.parse(s"${e.feature.replaceAll(" ", "")},owner/repo/file.java,${e.line}"))
 
-        val ratioOfMatches = distinctFeatures.size.toDouble/nbQueryFeatures
+        val distinctFeatures = features.map(_.key)
 
-        val finalScore =.6 * densityScore +.3 * sizeScore + .1 * ratioOfMatches
+        val ratioOfMatches = distinctFeatures.size.toDouble/features.size
 
-        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "ratioOfMatches" -> ratioOfMatches)
+        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
 
-        //        val finalScore =.4 * densityScore +.3 * sizeScore + 0.3 * score
+        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches
 
-        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, distinctFeatures)
+        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches)
+
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, features)
       }
     }
   }

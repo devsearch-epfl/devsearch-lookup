@@ -11,7 +11,7 @@ class LookupMerger(
 ) extends Actor with ActorLogging {
 
   log.info("Starting LookupMerger")
-  context.setReceiveTimeout(8.seconds)
+  context.setReceiveTimeout(9.seconds)
 
   var results: Seq[SearchResultEntry] = Seq()
   var nResponses : Int = 0
@@ -27,7 +27,7 @@ class LookupMerger(
         mergeAndReply
       }
     case SearchResultError(message) =>
-      requestor ! SearchResultError(s"one partition returned an error: $message")
+      requestor ! SearchResultError(s"One partition returned an error: $message")
       context.stop(self)
     case ReceiveTimeout =>
       log.info("LookUpMerger: Timeout expires")
