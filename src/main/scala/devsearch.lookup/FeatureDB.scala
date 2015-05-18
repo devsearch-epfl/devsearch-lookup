@@ -30,10 +30,12 @@ object FeatureDB {
    * @return A map from (feature, language) pair to number of occurrences
    */
   def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Future[Map[(String, String), Long]] = {
+    val langs = languages.map(Languages.extension).flatten
+
     val query = BSONDocument(
         "feature" -> BSONDocument("$in" -> features)
       ) ++ (
-        if (languages.nonEmpty) BSONDocument(
+        if (langs.nonEmpty) BSONDocument(
           "language" -> BSONDocument("$in" -> languages)
         ) else BSONDocument()
       )
