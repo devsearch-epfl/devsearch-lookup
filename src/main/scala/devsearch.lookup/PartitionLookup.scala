@@ -5,7 +5,7 @@ import java.io.{PrintStream, ByteArrayOutputStream}
 import akka.actor._
 import akka.pattern.pipe
 import devsearch.parsers.Languages
-import devsearch.features.Feature
+import devsearch.features._
 
 import scala.concurrent.Future
 
@@ -107,7 +107,13 @@ class PartitionLookup() extends Actor with ActorLogging {
 //          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
 //        })
 
-        val features = cluster.flatMap(line => featuresByLine(line)).map(e => Feature.parse(s"${e.feature.replaceAll(" ", "")},owner/repo/file.java,${e.line}"))
+        /** TODO: reconstruct the feature correctly */
+        val features = cluster.flatMap(line => featuresByLine(line)).map(e =>
+            new Feature(CodePiecePosition(CodeFileLocation("dummy_user", "dummy_repo", "dummy_file"), e.line)) {
+              def key = e.feature
+              override def toString = "Feature(" + key + ")"
+            }
+        )
 
         val distinctFeatures = features.map(_.key)
 
