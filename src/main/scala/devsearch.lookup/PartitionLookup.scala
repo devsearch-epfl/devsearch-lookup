@@ -35,7 +35,9 @@ class PartitionLookup() extends Actor with ActorLogging {
 
     for {
       localFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      _ = log.debug("Recovered local features occurences")
       globalFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      _ = log.debug("Recovered global features occurences")
       matches <- {
         val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
