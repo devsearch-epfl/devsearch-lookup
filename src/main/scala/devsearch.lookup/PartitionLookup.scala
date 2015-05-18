@@ -26,11 +26,11 @@ class PartitionLookup() extends Actor with ActorLogging {
     case SearchRequest(features, lang, start, len) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features.map(_.key), lang) pipeTo sender
+      getFeaturesAndScores(features.map(_.key), lang, len, start) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Set[String], languages: Set[String]): Future[SearchResult] = {
+  def getFeaturesAndScores(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
     for {
@@ -57,8 +57,8 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
-          val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, 10)
-          SearchResultSuccess(results.toSeq, count)
+          val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+          SearchResultSuccess(results.drop(from).toSeq, count)
         }.recover({
           case e =>
             val baos = new ByteArrayOutputStream()
