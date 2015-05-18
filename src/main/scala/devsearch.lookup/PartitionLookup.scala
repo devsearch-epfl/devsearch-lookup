@@ -42,11 +42,11 @@ class PartitionLookup() extends Actor with ActorLogging {
         val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
 
         // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
-        var resCount: Long = localFeatureOccs.getOrElse(sortedFeatures.head, 0L)
-        var rareFeatures: Set[String] = Set(sortedFeatures.head)
+        var resCount: Long = 0L
+        var rareFeatures: Set[String] = Set()
         var commonFeatures: Set[String] = Set()
 
-        for (feature <- sortedFeatures.tail) {
+        for (feature <- sortedFeatures) {
           if (resCount + localFeatureOccs.getOrElse(feature, 0L) <= STAGE_1_LIMIT) {
             resCount += localFeatureOccs.getOrElse(feature, 0L)
             rareFeatures += feature

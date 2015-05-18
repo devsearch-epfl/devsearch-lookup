@@ -20,7 +20,7 @@ object FeatureDB {
   val FEATURE_COLLECTION_NAME = "features"
   val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ"
   val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ"
-  val STAGE_2_LIMIT = 10000
+  val STAGE_2_LIMIT = 100
 
   /**
    * fetches number of occurrences from DB
@@ -64,7 +64,7 @@ object FeatureDB {
     val query = BSONDocument(
       "feature" -> (
         BSONDocument(
-          "$in" -> rareFeatures
+          "$in" -> (if (!rareFeatures.isEmpty) rareFeatures else commonFeatures)
         ) ++ (
           if (!langs.isEmpty) BSONDocument(
             "file" -> BSONDocument(
@@ -75,16 +75,16 @@ object FeatureDB {
       )
     )
 
-    val rareMatchesCommand = BSONDocument(
+    val limitedFilesCommand = BSONDocument(
       "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
       "key" -> "file",
       "query" -> query
     )
 
     for {
-      rareMatches <- RawDB.db.command(RawCommand(rareMatchesCommand))
+      limitedFiles <- RawDB.db.command(RawCommand(limitedFilesCommand))
       answers <- {
-        val rareMatchResult: Stream[String] = rareMatches.getAs[BSONArray]("values").get.values.map {
+        val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.take(STAGE_2_LIMIT).map {
           case entry: BSONString => entry.value
         }
 
@@ -104,9 +104,6 @@ object FeatureDB {
                   ) else BSONDocument()
                 )
               )
-            ),
-            BSONDocument(
-              "$limit" -> STAGE_2_LIMIT
             ),
             BSONDocument(
               "$group" -> BSONDocument(
