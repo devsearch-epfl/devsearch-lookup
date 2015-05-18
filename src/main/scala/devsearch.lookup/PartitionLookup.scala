@@ -56,7 +56,7 @@ class PartitionLookup() extends Actor with ActorLogging {
         }
         log.info(s"Common features : $commonFeatures")
         log.info(s"Rare features : $rareFeatures")
-        FeatureDB.getMatchesFromDb(rareFeatures, commonFheatures, languages).map {
+        FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
           val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, 10)
           SearchResultSuccess(results.toSeq, count)
