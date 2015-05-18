@@ -28,18 +28,14 @@ object FeatureDB {
    */
   def getFeatureOccurrenceCount(collection: String, features: Set[String], languages: Set[String]): Future[Map[(String, String), Long]] = {
     val command = BSONDocument(
-      "aggregate" -> collection,
-      "pipeline" -> BSONArray(
+      "find" -> collection,
+      "query" -> (
         BSONDocument(
-          "$match" -> (
-            BSONDocument(
-              "feature" -> BSONDocument("$in" -> features)
-            ) ++ (
-              if (!languages.isEmpty) BSONDocument(
-                "language" -> BSONDocument("$in" -> languages)
-              ) else BSONDocument()
-            )
-          )
+          "feature" -> BSONDocument("$in" -> features)
+        ) ++ (
+          if (!languages.isEmpty) BSONDocument(
+            "language" -> BSONDocument("$in" -> languages)
+          ) else BSONDocument()
         )
       )
     )
@@ -83,47 +79,20 @@ object FeatureDB {
       )
     )
 
-//    println(BSONDocument.pretty(query))
-
-    /*
-      Performs an aggregation on the db to fetch each matched files with a list of lineNb and featurename
-      Example in the mongo shell:
-      db.features.aggregate([ {$match: { feature: { $in: ["dummyfeature1", "dummyfeature2", "dummyfeature3", "dummyfeature4"]} }}, {$group: { _id: "$file", hits: { $push: { line: "$line", feature: "$feature"}}}}])
-      more info : http://reactivemongo.org/releases/0.10/documentation/advanced-topics/commands.html
-     */
-
-//    val command = BSONDocument(
-//      "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-//      "pipeline" -> BSONArray(
-//        BSONDocument(
-//          "$match" -> query),
-//        BSONDocument(
-//          "$group" -> BSONDocument(
-//            "_id" -> "$file",
-//            "hits" -> BSONDocument(
-//              "$push" -> BSONDocument(
-//                "line" -> "$line",
-//                "feature" -> "$feature"))))
-//      )
-//    )
-
     val rareMatchesCommand = BSONDocument(
       "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
       "key" -> "$file",
       "query" -> BSONDocument(
-          "$match" -> query)
+        "$match" -> query)
       )
 
-    val futureRareMatchResult = RawDB.run(rareMatchesCommand)
-
-    for  {
-      res <- futureRareMatchResult
+    for {
+      rareMatches <- RawDB.run(rareMatchesCommand)
       answers <- {
-        val rareMatchResult: Stream[String] = res.getAs[BSONArray]("result").get.values.map{
+        val rareMatchResult: Stream[String] = rareMatches.getAs[BSONArray]("result").get.values.map{
           // no need for asInstanceOf ?
           case entry: BSONString => entry.value
         }
-
 
         val fetchAllFeatures = BSONDocument(
           "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
@@ -199,89 +168,5 @@ object FeatureDB {
         }
       }
     } yield answers
-
-//    convert BSON result to a simple map
-//    futureRareMatchResult.map(
-//      res => {
-//        val rareMatchResult: Stream[String] = res.getAs[BSONArray]("result").get.values.map{
-//          // no need for asInstanceOf ?
-//          case entry: BSONString => entry.value
-//        }
-//
-//
-//        val fetchAllFeatures = BSONDocument(
-//          "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-//          "pipeline" -> BSONArray(
-//            BSONDocument(
-//              "$match" -> (
-//                BSONDocument(
-//                  "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
-//                  "file" -> BSONDocument( "$in" -> rareMatchResult )
-//                 ) ++ (
-//                  if (langs.nonEmpty) BSONDocument(
-//                    "file" -> BSONDocument(
-//                      "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
-//                    )
-//                  ) else BSONDocument()
-//                )
-//              )
-//            ),
-//            BSONDocument(
-//              "$group" -> BSONDocument(
-//                "_id" -> "$file",
-//                "hits" -> BSONDocument(
-//                  "$push" -> BSONDocument(
-//                    "line" -> "$line",
-//                    "feature" -> "$feature"))))
-//          )
-//        )
-//
-//        val futureResult: Future[BSONDocument] = RawDB.run(fetchAllFeatures)
-//
-//        implicit object HitReader extends BSONDocumentReader[Hit] {
-//          def read(doc: BSONDocument): Hit = {
-//            Hit(
-//              doc.getAs[Int]("line").get,
-//              doc.getAs[String]("feature").get
-//            )
-//          }
-//        }
-//
-//        implicit object DocumentHitsReader extends BSONDocumentReader[DocumentHits] {
-//          def read(doc: BSONDocument): DocumentHits = {
-//
-//            val repoAndFile = doc.getAs[String]("_id").get
-//            val firstSlash = repoAndFile.indexOf("/")
-//            val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
-//
-//            val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
-//              docArray => docArray.values.map{
-//                docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
-//              }.flatten
-//            }.getOrElse(Stream())
-//
-//
-//            DocumentHits(
-//              Location(
-//                repoAndFile.substring(0, firstSlash),
-//                repoAndFile.substring(firstSlash + 1, secondSlash),
-//                repoAndFile.substring(secondSlash + 1)
-//              ),
-//              hitStream
-//            )
-//          }
-//        }
-//
-//        futureResult.map {
-//          list => list.getAs[BSONArray]("result").map {
-//            docArray => docArray.values.map {
-//              docOption => docOption.seeAsOpt[BSONDocument].map (
-//                BSON.readDocument[DocumentHits]
-//              )
-//            }.flatten
-//          }.getOrElse(Stream())
-//        }
-//      }
-//    )
   }
 }
