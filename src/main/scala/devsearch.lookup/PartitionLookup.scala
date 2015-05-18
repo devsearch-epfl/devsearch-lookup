@@ -45,16 +45,17 @@ class PartitionLookup() extends Actor with ActorLogging {
         var resCount: Long = 0L
         var rareFeatures: Set[String] = Set()
         var commonFeatures: Set[String] = Set()
-
+        log.info(s" Sorted features $sortedFeatures")
         for (feature <- sortedFeatures) {
-          if (resCount + localFeatureOccs.getOrElse(feature, 0L) <= STAGE_1_LIMIT) {
-            resCount += localFeatureOccs.getOrElse(feature, 0L)
+          if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
+            resCount += localFeatureOccs.get(feature).getOrElse(0L)
             rareFeatures += feature
           } else {
             commonFeatures += feature
           }
         }
-
+        log.info(s"Common features : $commonFeatures")
+        log.info(s"Rare features : $rareFeatures")
         FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
           val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
