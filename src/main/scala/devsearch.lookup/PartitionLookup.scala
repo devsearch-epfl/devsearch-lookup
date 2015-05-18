@@ -26,7 +26,7 @@ class PartitionLookup() extends Actor with ActorLogging {
     case SearchRequest(features, lang, start, len) =>
       log.info("PartitionLookup: receive SearchRequest")
 
-      getFeaturesAndScores(features.map(_.key), lang.map(_.toLowerCase)) pipeTo sender
+      getFeaturesAndScores(features.map(_.key), lang) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
   }
 
