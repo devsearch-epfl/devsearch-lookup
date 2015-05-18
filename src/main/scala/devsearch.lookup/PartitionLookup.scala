@@ -107,17 +107,19 @@ class PartitionLookup() extends Actor with ActorLogging {
 //          map + (curr._2 -> (map.getOrElse(curr._2, 0) + 1))
 //        })
 
-        val distinctFeatures = cluster.flatMap(line => featuresByLine(line).map(e => Feature.parse(s"feature,owner/repo/file.java,${e.line}")))
+        val features = cluster.flatMap(line => featuresByLine(line)).map(e => Feature.parse(s"${e.feature.replaceAll(" ", "")},owner/repo/file.java,${e.line}"))
+
+        val distinctFeatures = features.map(_.key)
 
         val ratioOfMatches = distinctFeatures.size.toDouble/features.size
 
-        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature.key, language), 1L))).sum
+        val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
 
         val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches
 
         val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches)
 
-        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, distinctFeatures)
+        SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, features)
       }
     }
   }
