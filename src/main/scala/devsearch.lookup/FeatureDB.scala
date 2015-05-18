@@ -81,8 +81,8 @@ object FeatureDB {
     )
 
     for {
-      limitedFiles <- RawDB.db.command(RawCommand(limitedFilesCommand))
-      answers <- {
+      limitedFiles <- TimedFuture(RawDB.db.command(RawCommand(limitedFilesCommand)), name = "limited files")
+      answers <- TimedFuture({
         val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.map {
           case entry: BSONString => entry.value
         }
@@ -159,7 +159,7 @@ object FeatureDB {
             }.flatten
           }.getOrElse(Stream())
         }
-      }
+      }, name = "final pipeline")
     } yield answers
   }
 }
