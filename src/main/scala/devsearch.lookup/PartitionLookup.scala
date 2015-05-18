@@ -19,7 +19,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   log.info("Starting PartitionLookup")
 
-  val OCCURENCE_THRESHOLD: Long = 10000
+  val STAGE_1_LIMIT: Long = 10000
   val noCountDefaultValue: Long = 0
 
   override def receive = {
@@ -47,7 +47,7 @@ class PartitionLookup() extends Actor with ActorLogging {
         var commonFeatures: Set[String] = Set()
 
         for (feature <- sortedFeatures.tail) {
-          if (resCount + localFeatureOccs.getOrElse(feature, 0L) <= OCCURENCE_THRESHOLD) {
+          if (resCount + localFeatureOccs.getOrElse(feature, 0L) <= STAGE_1_LIMIT) {
             resCount += localFeatureOccs.getOrElse(feature, 0L)
             rareFeatures += feature
           } else {
