@@ -83,9 +83,9 @@ object FeatureDB {
     for {
       limitedFiles <- TimedFuture(RawDB.db.command(RawCommand(limitedFilesCommand)), name = "limited files")
       answers <- TimedFuture({
-        val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.take(STAGE_2_LIMIT).map {
+        val rareMatchResult: List[String] = limitedFiles.getAs[BSONArray]("values").get.values.take(STAGE_2_LIMIT).map {
           case entry: BSONString => entry.value
-        }
+        }.toList
 
         val fetchAllFeatures = BSONDocument(
           "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
