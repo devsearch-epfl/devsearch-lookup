@@ -83,7 +83,7 @@ object FeatureDB {
     for {
       limitedFiles <- RawDB.db.command(RawCommand(limitedFilesCommand))
       answers <- {
-        val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.take(STAGE_2_LIMIT).map {
+        val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.map {
           case entry: BSONString => entry.value
         }
 
