@@ -78,6 +78,8 @@ object FeatureDB {
       "query" -> query
     )
 
+    println("rareQuery: " + BSONDocument.pretty(limitedFilesCommand))
+
     for {
       limitedFiles <- RawDB.db.command(RawCommand(limitedFilesCommand))
       answers <- {
@@ -111,6 +113,8 @@ object FeatureDB {
                     "feature" -> "$feature"))))
           )
         )
+
+        println("finalQuery: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 
