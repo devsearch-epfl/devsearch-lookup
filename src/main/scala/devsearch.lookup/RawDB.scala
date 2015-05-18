@@ -1,11 +1,8 @@
 package devsearch.lookup
 
 import reactivemongo.api.MongoDriver
-import reactivemongo.api.collections.default.BSONCollection
-import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 object RawDB {
   val DB_SERVER = "localhost"
