@@ -63,8 +63,9 @@ object FeatureDB {
     val langs = langFilter.map(Languages.extension).flatten
     val query = BSONDocument(
       "feature" -> (
-        BSONDocument(
-          "$in" -> (if (!rareFeatures.isEmpty) rareFeatures else commonFeatures)
+        if(rareFeatures.isEmpty) BSONDocument()
+        else BSONDocument(
+          "$in" -> rareFeatures
         ) ++ (
           if (!langs.isEmpty) BSONDocument(
             "file" -> BSONDocument(
