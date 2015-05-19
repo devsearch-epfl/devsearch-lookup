@@ -31,8 +31,12 @@ class LookupMerger(
       context.stop(self)
     case ReceiveTimeout =>
       log.info("LookUpMerger: Timeout expires")
-      requestor ! SearchResultError(s"Timeout: $nResponses out of $nPartitions partitions replied on time.")
-      context.stop(self)
+      if(results.nonEmpty){
+         mergeAndReply
+      }else {
+        requestor ! SearchResultError(s"Timeout: $nResponses out of $nPartitions partitions replied on time.")
+        context.stop(self)
+      }
     case x => log.error(s"Received unexpected message $x")
 
   }
