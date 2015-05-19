@@ -10,7 +10,7 @@ import scala.concurrent._
 import reactivemongo.core.commands.RawCommand
 
 case class Hit(line: Int, feature: String)
-case class DocumentHits(location: Location, hits: Stream[Hit])
+case class DocumentHits(location: Location, repoRank: Double, hits: Stream[Hit])
 
 /**
  * Interract with the db to fetch files and line for a query
@@ -94,6 +94,8 @@ object FeatureDB {
             BSONDocument(
               "$group" -> BSONDocument(
                 "_id" -> "$file",
+                "repoRank" -> BSONDocument(
+                  "$first" -> "repoRank"),
                 "hits" -> BSONDocument(
                   "$push" -> BSONDocument(
                     "line" -> "$line",
@@ -120,6 +122,8 @@ object FeatureDB {
             val firstSlash = repoAndFile.indexOf("/")
             val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
 
+            val repoRank = doc.getAs[Double]("repoRank").get
+
             val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
               docArray => docArray.values.map{
                 docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
@@ -133,6 +137,7 @@ object FeatureDB {
                 repoAndFile.substring(firstSlash + 1, secondSlash),
                 repoAndFile.substring(secondSlash + 1)
               ),
+              repoRank,
               hitStream
             )
           }

@@ -21,6 +21,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   val STAGE_1_LIMIT: Long = 10000
   val noCountDefaultValue: Long = 0
+  val REPO_RANK_LOG_MAX: Double = 4.5
 
   override def receive = {
     case SearchRequest(features, lang, start, len) =>
@@ -81,7 +82,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   def getScores(entry: DocumentHits, features: Set[String], featureLangOccs: Map[(String,String), Long]): Iterable[SearchResultEntry] = entry match {
 
-    case DocumentHits(location, streamOfHits) => {
+    case DocumentHits(location, repoRank, streamOfHits) => {
 
       val language = Languages.guess(location.file).getOrElse("")
 
@@ -124,9 +125,9 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
 
-        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches
+        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches + .5 * repoRank
 
-        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches)
+        val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches, "repoRank" -> repoRank)
 
         SearchResultEntry(location.owner, location.repo, location.file, cluster.min, cluster.max, finalScore.toFloat, scoreBreakdown, features)
       }
