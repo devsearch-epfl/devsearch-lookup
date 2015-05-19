@@ -24,9 +24,4 @@ sudo chown mongodb:mongodb /mnt/
 # clone akka cluster process
 git clone https://github.com/devsearch-epfl/devsearch-lookup.git
 
-#Set up start up script
-sudo cp devsearch-lookup/script/startDB.sh /etc/init.d
-sudo update-rc.d startDB.sh defaults
-sudo chmod +x /etc/init.d/startDB.sh
-
 echo '*** Setup is complete ***'
