@@ -88,7 +88,7 @@ object FeatureDB {
             BSONDocument(
               "$match" -> (
                 BSONDocument(
-                  "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
+                  //"feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
                   "file" -> BSONDocument( "$in" -> rareMatchFiles )
                 ) ++ (
                   if (langs.nonEmpty) BSONDocument(
