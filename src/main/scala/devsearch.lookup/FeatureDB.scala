@@ -6,7 +6,6 @@ import devsearch.parsers.Languages
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.concurrent.duration._
 
 import reactivemongo.core.commands.RawCommand
 
@@ -104,10 +103,6 @@ object FeatureDB {
         println("Query: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
-
-        /*Await.ready(futureResult, 60.seconds)
-        println("ready!")
-        ???*/
 
         implicit object HitReader extends BSONDocumentReader[Hit] {
           def read(doc: BSONDocument): Hit = {
