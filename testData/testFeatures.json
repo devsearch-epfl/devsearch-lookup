@@ -1,14 +1,14 @@
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "feature": "dummyfeature1"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "feature": "dummyfeature2"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "32"}, "feature": "dummyfeature3"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "23"}, "feature": "dummyfeature4"}
-{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "28"}, "feature": "dummyfeature5"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "22"}, "feature": "dummyfeature1"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "25"}, "feature": "dummyfeature2"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "26"}, "feature": "dummyfeature3"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "feature": "dummyfeature4"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "31"}, "feature": "dummyfeature5"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "repoRank": 25266.234, "feature": "dummyfeature1"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "39"}, "repoRank": 25266.234, "feature": "dummyfeature2"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "32"}, "repoRank": 25266.234, "feature": "dummyfeature3"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "23"}, "repoRank": 25266.234, "feature": "dummyfeature4"}
+{"file": "dummyuser1/dummyrepo1/path/to/file.java", "line": {"$numberInt": "28"}, "repoRank": 25266.234, "feature": "dummyfeature5"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "22"}, "repoRank": 0.598764, "feature": "dummyfeature1"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "25"}, "repoRank": 0.598764, "feature": "dummyfeature2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "26"}, "repoRank": 0.598764, "feature": "dummyfeature3"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "repoRank": 0.598764, "feature": "dummyfeature4"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "31"}, "repoRank": 0.598764, "feature": "dummyfeature5"}
 
-{"file": "dummyuser2/dummyrepo2/path/to/file.scala", "line": {"$numberInt": "26"}, "feature": "featureforlanguage1"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "feature": "featureforlanguage2"}
-{"file": "dummyuser2/dummyrepo2/path/to/file.js", "line": {"$numberInt": "31"}, "feature": "featureforlanguage2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.scala", "line": {"$numberInt": "26"}, "repoRank": 0.598764, "feature": "featureforlanguage1"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.java", "line": {"$numberInt": "30"}, "repoRank": 0.598764, "feature": "featureforlanguage2"}
+{"file": "dummyuser2/dummyrepo2/path/to/file.js", "line": {"$numberInt": "31"}, "repoRank": 0.598764, "feature": "featureforlanguage2"}

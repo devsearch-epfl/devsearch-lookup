@@ -10,7 +10,7 @@ import scala.concurrent._
 import reactivemongo.core.commands.RawCommand
 
 case class Hit(line: Int, feature: String)
-case class DocumentHits(location: Location, hits: Stream[Hit])
+case class DocumentHits(location: Location, repoRank: Double, hits: Stream[Hit])
 
 /**
  * Interract with the db to fetch files and line for a query
@@ -20,7 +20,7 @@ object FeatureDB {
   val FEATURE_COLLECTION_NAME = "features"
   val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ"
   val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ"
-  val STAGE_2_LIMIT = 1000
+  val STAGE_2_LIMIT = 10000
 
   /**
    * fetches number of occurrences from DB
@@ -94,13 +94,15 @@ object FeatureDB {
             BSONDocument(
               "$group" -> BSONDocument(
                 "_id" -> "$file",
+                "repoRank" -> BSONDocument(
+                  "$first" -> "$repoRank"),
                 "hits" -> BSONDocument(
                   "$push" -> BSONDocument(
                     "line" -> "$line",
                     "feature" -> "$feature"))))
           )
         )
-        println("Query: " + BSONDocument.pretty(fetchAllFeatures))
+        //println("Query: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 
@@ -120,6 +122,8 @@ object FeatureDB {
             val firstSlash = repoAndFile.indexOf("/")
             val secondSlash = repoAndFile.indexOf("/", firstSlash + 1)
 
+            val repoRank = doc.getAs[Double]("repoRank").get
+
             val hitStream: Stream[Hit] =  doc.getAs[BSONArray]("hits").map {
               docArray => docArray.values.map{
                 docOption => docOption.seeAsOpt[BSONDocument].map(BSON.readDocument[Hit])
@@ -133,6 +137,7 @@ object FeatureDB {
                 repoAndFile.substring(firstSlash + 1, secondSlash),
                 repoAndFile.substring(secondSlash + 1)
               ),
+              repoRank,
               hitStream
             )
           }
