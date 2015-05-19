@@ -125,7 +125,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         val rarityScore = distinctFeatures.map(feature => rarityWeightFunction(featureLangOccs.getOrElse((feature, language), 1L))).sum
 
-        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches + .5 * repoRank
+        val finalScore =.6 * densityScore +.3 * sizeScore + .4 * rarityScore + .1 * ratioOfMatches + .5 * Math.log(repoRank)/10.15d
 
         val scoreBreakdown = Map("final" -> finalScore, "density" -> densityScore, "size" -> sizeScore, "rarity" -> rarityScore, "ratioOfMatches" -> ratioOfMatches, "repoRank" -> repoRank)
 
