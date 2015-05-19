@@ -19,8 +19,12 @@ class LookupProvider(val maxPartitions: Int) extends Actor with ActorLogging {
   override def receive = {
     case req: SearchRequest =>
       log.info("LookupProvider: receive SearchRequest")
-      val merger = context.actorOf(Props(classOf[LookupMerger], sender, maxPartitions), name = "merger-" + randomUuid())
-      partitionManagers.tell(req, merger)
+      if (req.features.isEmpty)
+        sender ! SearchResultSuccess(Seq(), 0)
+      else {
+        val merger = context.actorOf(Props(classOf[LookupMerger], sender, maxPartitions), name = "merger-" + randomUuid())
+        partitionManagers.tell(req, merger)
+      }
     case x => log.error(s"Received unexpected message $x")
   }
 }
