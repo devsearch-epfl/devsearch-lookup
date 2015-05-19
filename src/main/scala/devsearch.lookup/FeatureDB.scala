@@ -87,6 +87,8 @@ object FeatureDB {
           case entry: BSONString => entry.value
         }.toList
 
+        println("got all rare matches")
+
         val fetchAllFeatures = BSONDocument(
           "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
           "pipeline" -> BSONArray(
