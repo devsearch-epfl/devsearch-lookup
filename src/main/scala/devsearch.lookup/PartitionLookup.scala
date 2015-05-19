@@ -35,8 +35,8 @@ class PartitionLookup() extends Actor with ActorLogging {
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
     for {
-      localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages), name = "local occs")
-      globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages), name = "global occs")
+      localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "local occs")
+      globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "global occs")
       matches <- {
         val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
