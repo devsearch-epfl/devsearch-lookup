@@ -100,6 +100,7 @@ object FeatureDB {
                     "feature" -> "$feature"))))
           )
         )
+        println("Query: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 
