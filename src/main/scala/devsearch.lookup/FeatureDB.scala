@@ -21,7 +21,7 @@ object FeatureDB {
   val FEATURE_COLLECTION_NAME = "features"
   val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ"
   val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ"
-  val STAGE_2_LIMIT = 10
+  val STAGE_2_LIMIT = 1000
 
   /**
    * fetches number of occurrences from DB
