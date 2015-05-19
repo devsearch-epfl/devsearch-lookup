@@ -43,4 +43,11 @@ class FeatureDBTest extends FlatSpec with Matchers {
 
     list.size should be (2)
   }
+
+  it should "should give the correct repoRank" in {
+    val results = FeatureDB.getMatchesFromDb(Set("dummyfeature1", "dummyfeature2"), Set(), Set("Java", "JavaScript"))
+    val list = Await.result(results, Duration.Inf)
+
+    list.map{ docHit => docHit.repoRank}.toList.sorted should be (List(0.598764,25266.234))
+  }
 }

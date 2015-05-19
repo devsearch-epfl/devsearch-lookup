@@ -95,7 +95,7 @@ object FeatureDB {
               "$group" -> BSONDocument(
                 "_id" -> "$file",
                 "repoRank" -> BSONDocument(
-                  "$first" -> "repoRank"),
+                  "$first" -> "$repoRank"),
                 "hits" -> BSONDocument(
                   "$push" -> BSONDocument(
                     "line" -> "$line",
