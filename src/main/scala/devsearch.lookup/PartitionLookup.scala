@@ -127,7 +127,10 @@ class PartitionLookup() extends Actor with ActorLogging {
 
         val repoRankScore = Math.log(repoRank)/Math.log(25566)
 
-        val finalScore =.6 * densityScore + .4 * sizeScore + .3 * rarityScore + .1 * ratioOfMatches + .4 * repoRankScore
+        var finalScore =.6 * densityScore + .4 * sizeScore + .3 * rarityScore + .1 * ratioOfMatches + .4 * repoRankScore
+
+        if (distinctFeatures.contains("map call"))
+          finalScore = finalScore + 100
 
         val scoreBreakdown = Map("final" ->  finalScore, "density" -> .6 * densityScore, "size" -> .4 * sizeScore, "rarity" -> .3 * rarityScore, "ratioOfMatches" -> .1 * ratioOfMatches, "repoRank" -> .4 * repoRankScore)
 
