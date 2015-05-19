@@ -88,7 +88,7 @@ object FeatureDB {
           "pipeline" -> BSONArray(
             BSONDocument(
               "$match" -> BSONDocument(
-                "file" -> BSONDocument( "$in" -> rareMatchFiles )//,
+                "file" -> BSONDocument( "$in" -> rareMatchFiles ),
                 "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) )
               )
             ),
