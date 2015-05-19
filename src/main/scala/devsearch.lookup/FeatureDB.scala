@@ -5,7 +5,7 @@ import reactivemongo.bson._
 import devsearch.parsers.Languages
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent._
 
 import reactivemongo.core.commands.RawCommand
 
@@ -20,7 +20,7 @@ object FeatureDB {
   val FEATURE_COLLECTION_NAME = "features"
   val LOCAL_OCCURENCES_COLLECTION_NAME = "local_occ"
   val GLOBAL_OCCURENCES_COLLECTION_NAME = "global_occ"
-  val STAGE_2_LIMIT = 100
+  val STAGE_2_LIMIT = 1000
 
   /**
    * fetches number of occurrences from DB
@@ -73,35 +73,22 @@ object FeatureDB {
         ) else BSONDocument()
       )
 
-
-    val limitedFilesCommand = BSONDocument(
-      "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-      "key" -> "file",
-      "query" -> query
-    )
-
     for {
-      limitedFiles <- RawDB.db.command(RawCommand(limitedFilesCommand))
-      answers <- {
-        val rareMatchResult: Stream[String] = limitedFiles.getAs[BSONArray]("values").get.values.map {
-          case entry: BSONString => entry.value
-        }
+      limitedFiles <- TimedFuture(RawDB.db(FEATURE_COLLECTION_NAME).find(query).cursor[BSONDocument].collect[List](STAGE_2_LIMIT), name = "limited files")
+      answers <- TimedFuture({
+        val rareMatchFiles: List[String] = limitedFiles.map(feature => {
+          feature.getAs[String]("file").getOrElse(throw new Exception("malformed data: file key not present"))
+        })
+
+        println("got all rare matches")
 
         val fetchAllFeatures = BSONDocument(
           "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
           "pipeline" -> BSONArray(
             BSONDocument(
-              "$match" -> (
-                BSONDocument(
-                  "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
-                  "file" -> BSONDocument( "$in" -> rareMatchResult )
-                ) ++ (
-                  if (langs.nonEmpty) BSONDocument(
-                    "file" -> BSONDocument(
-                      "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
-                    )
-                  ) else BSONDocument()
-                )
+              "$match" -> BSONDocument(
+                "file" -> BSONDocument( "$in" -> rareMatchFiles ),
+                "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) )
               )
             ),
             BSONDocument(
@@ -113,6 +100,7 @@ object FeatureDB {
                     "feature" -> "$feature"))))
           )
         )
+        println("Query: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 
@@ -159,7 +147,7 @@ object FeatureDB {
             }.flatten
           }.getOrElse(Stream())
         }
-      }
+      }, name = "final pipeline")
     } yield answers
   }
 }

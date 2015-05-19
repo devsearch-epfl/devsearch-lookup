@@ -34,8 +34,8 @@ class PartitionLookup() extends Actor with ActorLogging {
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
     for {
-      localFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages)
-      globalFeatureLangOccs <- FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages)
+      localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, languages), name = "local occs")
+      globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, languages), name = "global occs")
       matches <- {
         val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
@@ -46,6 +46,8 @@ class PartitionLookup() extends Actor with ActorLogging {
         var rareFeatures: Set[String] = Set()
         var commonFeatures: Set[String] = Set()
         log.info(s" Sorted features $sortedFeatures")
+        log.info(s" Local counts $localFeatureOccs")
+
         for (feature <- sortedFeatures) {
           if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
             resCount += localFeatureOccs.get(feature).getOrElse(0L)
@@ -59,6 +61,7 @@ class PartitionLookup() extends Actor with ActorLogging {
         FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
           val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+          println("done!")
           SearchResultSuccess(results.drop(from).toSeq, count)
         }.recover({
           case e =>
