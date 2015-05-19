@@ -86,17 +86,9 @@ object FeatureDB {
           "aggregate" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
           "pipeline" -> BSONArray(
             BSONDocument(
-              "$match" -> (
-                BSONDocument(
-                  //"feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
-                  "file" -> BSONDocument( "$in" -> rareMatchFiles )
-                ) ++ (
-                  if (langs.nonEmpty) BSONDocument(
-                    "file" -> BSONDocument(
-                      "$regex" -> BSONRegex(".(?:" + langs.mkString("|") + ")$","g")
-                    )
-                  ) else BSONDocument()
-                )
+              "$match" -> BSONDocument(
+                //"feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
+                "file" -> BSONDocument( "$in" -> rareMatchFiles )
               )
             ),
             BSONDocument(
