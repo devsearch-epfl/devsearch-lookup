@@ -73,19 +73,12 @@ object FeatureDB {
         ) else BSONDocument()
       )
 
-
-    val limitedFilesCommand = BSONDocument(
-      "distinct" -> FEATURE_COLLECTION_NAME, // name of the collection on which we run this command
-      "key" -> "file",
-      "query" -> query
-    )
-
     for {
-      limitedFiles <- TimedFuture(RawDB.db.command(RawCommand(limitedFilesCommand)), name = "limited files")
+      limitedFiles <- TimedFuture(RawDB.db(FEATURE_COLLECTION_NAME).find(query).cursor[BSONDocument].collect[List](STAGE_2_LIMIT), name = "limited files")
       answers <- TimedFuture({
-        val rareMatchResult: List[String] = limitedFiles.getAs[BSONArray]("values").get.values.take(STAGE_2_LIMIT).map {
-          case entry: BSONString => entry.value
-        }.toList
+        val rareMatchFiles: List[String] = limitedFiles.map(feature => {
+          feature.getAs[String]("file").getOrElse(throw new Exception("malformed data: file key not present"))
+        })
 
         println("got all rare matches")
 
@@ -96,7 +89,7 @@ object FeatureDB {
               "$match" -> (
                 BSONDocument(
                   "feature" -> BSONDocument( "$in" -> (rareFeatures ++ commonFeatures) ),
-                  "file" -> BSONDocument( "$in" -> rareMatchResult )
+                  "file" -> BSONDocument( "$in" -> rareMatchFiles )
                 ) ++ (
                   if (langs.nonEmpty) BSONDocument(
                     "file" -> BSONDocument(
