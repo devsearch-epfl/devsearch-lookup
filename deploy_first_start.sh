@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-mkdir database
-sudo mongod --fork --logpath /var/log/mongodb.log --dbpath ./database
+sudo mkdir /mnt/database
+sudo mongod --fork --logpath /var/log/mongodb.log --dbpath /mnt/database
 
 # fill the db with local files (previously copied over with scp for instance)
 cat bucket-data/bucket*.json | mongoimport --db devsearch --collection features --drop
