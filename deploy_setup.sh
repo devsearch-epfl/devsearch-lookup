@@ -2,6 +2,9 @@
 
 mkdir bucket-data
 
+sudo apt-get update
+sudo apt-get install git
+
 echo "starting installation with mongodb and sbt"
 
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
