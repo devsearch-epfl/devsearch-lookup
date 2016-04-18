@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Db startup script for azure D11_v2 vms
+
+set -e
+
 sudo mkdir /mnt/database
 sudo mongod --fork --logpath /var/log/mongodb.log --dbpath /mnt/database
 
@@ -12,9 +16,4 @@ mongo --eval "db.features.createIndex( { file: 1 } )" devsearch
 mongo --eval "db.global_occ.createIndex( { feature: 1 } )" devsearch
 mongo --eval "db.local_occ.createIndex( { feature: 1 } )" devsearch
 
-
-git clone https://github.com/devsearch-epfl/devsearch-lookup.git
-cd devsearch-lookup/
-
-
-sbt run -c -5
+echo '*** Database is filled and indexed ***'

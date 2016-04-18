@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
+# Install script for azure D11_v2 vms
+
+set -e
+
 mkdir bucket-data
 
 sudo apt-get update
-sudo apt-get install git
 
 echo "starting installation with mongodb and sbt"
 
@@ -13,8 +16,16 @@ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
 echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
 sudo apt-get update
 
+
+# install mongodb, sbt and git as dependencies
 sudo apt-get install -y mongodb-org
 
 sudo apt-get install -y sbt
 
-echo "installation finised"
+sudo apt-get install -y git
+
+# install our tool
+git clone https://github.com/devsearch-epfl/devsearch-lookup.git
+cd devsearch-lookup/
+
+echo '*** Setup is complete ***'

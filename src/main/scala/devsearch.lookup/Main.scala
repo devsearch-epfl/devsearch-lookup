@@ -14,14 +14,19 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     val parser: OptionParser[Config] = new OptionParser[Config]("LookupCluster") {
+
+      // TODO: needs a fix: the -c option will override any previous option
       opt[Unit]('c', "cluster").text("run the cluster on multiple machines").action((_, _) =>
         ConfigFactory.parseString(
           s"akka.remote.netty.tcp.hostname=${InetAddress.getLocalHost.getHostName}"
         ) withFallback ConfigFactory.load("deployment"))
+
       opt[Unit]('s', "slave").text("slave node").action((_, c) =>
         ConfigFactory.parseString("devsearch.slave=true") withFallback c)
+
       opt[Int]('p', "port").text("port of the netty server").action((port, c) =>
         ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port") withFallback c)
+
       opt[Int]('n', "nbpart").text("number of partitions").action((part, c) =>
         ConfigFactory.parseString(s"devsearch.nbPartitions=$part") withFallback c)
     }
@@ -31,13 +36,22 @@ object Main {
       sys.exit(1)
     }
 
+    // by default application.conf will be read. If -c is provided, deployment.conf will be used.
+    // (and any previous option dropped)
     val conf = parser.parse(args, ConfigFactory.load("application")) getOrElse sys.exit(1)
 
+    println(conf.toString)
+
     val system = ActorSystem("lookupCluster", conf)
+
     if(conf.getBoolean("devsearch.slave")){
+
       system.actorOf(Props[PartitionManager], name = "partitionManager")
+
     } else {
+
       val lookup = system.actorOf(Props(classOf[LookupProvider], conf.getInt("devsearch.nbPartitions")), name = "lookup")
+
       ClusterReceptionistExtension(system).registerService(lookup)
     }
     system.awaitTermination()
