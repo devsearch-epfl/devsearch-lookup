@@ -18,7 +18,7 @@ class LookupProvider(val maxPartitions: Int) extends Actor with ActorLogging {
 
   override def receive = {
     case req: SearchRequest =>
-      log.info("LookupProvider: receive SearchRequest")
+      log.info("LookupProvider: receive SearchRequest (millis=" + System.currentTimeMillis + ")")
       if (req.features.isEmpty)
         sender ! SearchResultSuccess(Seq(), 0)
       else {

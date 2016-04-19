@@ -1,5 +1,7 @@
 package devsearch.lookup
 
+import java.util.Calendar
+
 import akka.actor._
 import akka.routing._
 /**SmallestMailboxRoutingLogic
@@ -14,7 +16,7 @@ class PartitionManager extends Actor with ActorLogging {
 
   override def receive = {
     case req: SearchRequest =>
-      log.info("Receive SearchRequest, forwarding")
+      log.info("Receive SearchRequest, forwarding (millis=" + System.currentTimeMillis + ")")
       lookup forward req
     case x => log.error(s"Received unexpected message $x")
   }

@@ -18,12 +18,12 @@ class LookupMerger(
   var totalCount: Long = 0
   override def receive = {
     case SearchResultSuccess(partitionResult, count) =>
-      log.info("LookupMerger: receive SearchResultSuccess")
+      log.info("LookupMerger: receive SearchResultSuccess (millis=" + System.currentTimeMillis + ")")
       results ++= partitionResult
       nResponses += 1
       totalCount += count
       if(nResponses == nPartitions){
-        log.info("LookUpMerger: All partitions provided, sending the data back")
+        log.info("LookUpMerger: All partitions provided, sending the data back (millis=" + System.currentTimeMillis + ")")
         mergeAndReply
       }
     case SearchResultError(message) =>

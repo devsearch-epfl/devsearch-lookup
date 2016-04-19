@@ -25,7 +25,7 @@ class PartitionLookup() extends Actor with ActorLogging {
 
   override def receive = {
     case SearchRequest(features, lang, start, len) =>
-      log.info("PartitionLookup: receive SearchRequest")
+      log.info("PartitionLookup: receive SearchRequest starting local partition lookup (millis=" + System.currentTimeMillis + ")")
 
       getFeaturesAndScores(features.map(_.key), lang, len, start) pipeTo sender
     case x => log.error(s"Received unexpected message $x")
@@ -62,7 +62,7 @@ class PartitionLookup() extends Actor with ActorLogging {
         FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
           val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
-          println("done!")
+          println("done searching db! (millis=" + System.currentTimeMillis + ")")
           SearchResultSuccess(results.drop(from).toSeq, count)
         }.recover({
           case e =>
