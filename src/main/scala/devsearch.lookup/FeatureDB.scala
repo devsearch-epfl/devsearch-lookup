@@ -77,7 +77,7 @@ object FeatureDB {
       limitedFiles <- TimedFuture(RawDB.db(FEATURE_COLLECTION_NAME).find(query).cursor[BSONDocument].collect[List](STAGE_2_LIMIT), name = "limited files")
       answers <- TimedFuture({
         val rareMatchFiles: List[String] = limitedFiles.map(feature => {
-          feature.getAs[String]("file").getOrElse(throw new Exception("malformed data: file key not present"))
+          feature.getAs[String]("file").getOrElse(throw new Exception("malformed data: file key not present: " + feature.toString))
         })
 
         println("got all rare matches")
@@ -102,7 +102,8 @@ object FeatureDB {
                     "feature" -> "$feature"))))
           )
         )
-        //println("Query: " + BSONDocument.pretty(fetchAllFeatures))
+
+        println("Query: " + BSONDocument.pretty(fetchAllFeatures))
 
         val futureResult: Future[BSONDocument] = RawDB.db.command(RawCommand(fetchAllFeatures))
 

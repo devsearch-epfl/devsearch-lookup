@@ -28,6 +28,7 @@ class PartitionLookup() extends Actor with ActorLogging {
       log.info("PartitionLookup: receive SearchRequest starting local partition lookup (millis=" + System.currentTimeMillis + ")")
 
       getFeaturesAndScores(features.map(_.key), lang, len, start) pipeTo sender
+
     case x => log.error(s"Received unexpected message $x")
   }
 
@@ -38,8 +39,11 @@ class PartitionLookup() extends Actor with ActorLogging {
       localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "local occs")
       globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "global occs")
       matches <- {
+
+        // get count of features that match this request locally
         val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
 
+        // sort features in order of increasing count (in the local database)
         val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
 
         // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
@@ -61,10 +65,16 @@ class PartitionLookup() extends Actor with ActorLogging {
         log.info(s"Rare features : $rareFeatures")
         FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
           docHitsStream =>
-          val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
-          println("done searching db! (millis=" + System.currentTimeMillis + ")")
-          SearchResultSuccess(results.drop(from).toSeq, count)
+
+            // from the stream of documents
+            val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+
+            println("done searching db! (millis=" + System.currentTimeMillis + ")")
+            SearchResultSuccess(results.drop(from).toSeq, count)
+
         }.recover({
+
+          // in case of error send the stack trace to the merger
           case e =>
             val baos = new ByteArrayOutputStream()
             val ps = new PrintStream(baos)

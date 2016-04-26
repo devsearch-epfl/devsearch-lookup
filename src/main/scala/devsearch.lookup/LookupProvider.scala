@@ -17,14 +17,20 @@ class LookupProvider(val maxPartitions: Int) extends Actor with ActorLogging {
   def randomUuid() = java.util.UUID.randomUUID().toString
 
   override def receive = {
+
     case req: SearchRequest =>
       log.info("LookupProvider: receive SearchRequest (millis=" + System.currentTimeMillis + ")")
       if (req.features.isEmpty)
+
+        // handles the empty query case
         sender ! SearchResultSuccess(Seq(), 0)
       else {
+
+        // Creates a lookupMerger actor that will query and merge results from all PartitionManager Actors on the cluster
         val merger = context.actorOf(Props(classOf[LookupMerger], sender, maxPartitions), name = "merger-" + randomUuid())
         partitionManagers.tell(req, merger)
       }
+
     case x => log.error(s"Received unexpected message $x")
   }
 }

@@ -17,6 +17,7 @@ class LookupMerger(
   var nResponses : Int = 0
   var totalCount: Long = 0
   override def receive = {
+
     case SearchResultSuccess(partitionResult, count) =>
       log.info("LookupMerger: receive SearchResultSuccess (millis=" + System.currentTimeMillis + ")")
       results ++= partitionResult
@@ -26,9 +27,11 @@ class LookupMerger(
         log.info("LookUpMerger: All partitions provided, sending the data back (millis=" + System.currentTimeMillis + ")")
         mergeAndReply
       }
+
     case SearchResultError(message) =>
       requestor ! SearchResultError(s"One partition returned an error: $message")
       context.stop(self)
+
     case ReceiveTimeout =>
       log.info("LookUpMerger: Timeout expires")
       if(results.nonEmpty){
@@ -37,6 +40,7 @@ class LookupMerger(
         requestor ! SearchResultError(s"Timeout: $nResponses out of $nPartitions partitions replied on time.")
         context.stop(self)
       }
+
     case x => log.error(s"Received unexpected message $x")
 
   }

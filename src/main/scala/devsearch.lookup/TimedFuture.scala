@@ -10,7 +10,7 @@ object TimedFuture {
       case _ =>
         val end = System.nanoTime
         val elapsedSeconds = (end - start) * 0.000000001
-        println("====> " + name + " finished " + elapsedSeconds)
+        println("====> " + name + " finished in " + elapsedSeconds + " seconds")
     }
     future
   }

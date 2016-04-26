@@ -40,16 +40,21 @@ object Main {
     // (and any previous option dropped)
     val conf = parser.parse(args, ConfigFactory.load("application")) getOrElse sys.exit(1)
 
-    println(conf.toString)
+//    println(conf.toString)
+
 
     val system = ActorSystem("lookupCluster", conf)
 
     if(conf.getBoolean("devsearch.slave")){
 
+      // creates a slave that will listen for queries from the LookupProvider and send it to a PartitionLookup actor to
+      // query the local mongodb instance
       system.actorOf(Props[PartitionManager], name = "partitionManager")
 
     } else {
 
+      // creates an actor that will listen for queries from the devsearch-play instance, create a PartitionMerger
+      // actor and forward the query to all slave actors on the cluster.
       val lookup = system.actorOf(Props(classOf[LookupProvider], conf.getInt("devsearch.nbPartitions")), name = "lookup")
 
       ClusterReceptionistExtension(system).registerService(lookup)
