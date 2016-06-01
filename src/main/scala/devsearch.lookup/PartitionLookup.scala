@@ -33,57 +33,108 @@ class PartitionLookup() extends Actor with ActorLogging {
   }
 
   def getFeaturesAndScores(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
+
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
-    for {
-      localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "local occs")
-      globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "global occs")
-      matches <- {
+    FeatureDB.getBestFileMatchesFromDb(features, languages, from, len)
 
-        // get count of features that match this request locally
-        val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
+      .map {
+        docHitsStream =>
 
-        // sort features in order of increasing count (in the local database)
-        val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
+          SearchResultSuccess(docHitsStream.map{
 
-        // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
-        var resCount: Long = 0L
-        var rareFeatures: Set[String] = Set()
-        var commonFeatures: Set[String] = Set()
-        log.info(s" Sorted features $sortedFeatures")
-        log.info(s" Local counts $localFeatureOccs")
+            case FileMatch(file, score, center, std, hits) =>
 
-        for (feature <- sortedFeatures) {
-          if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
-            resCount += localFeatureOccs.get(feature).getOrElse(0L)
-            rareFeatures += feature
-          } else {
-            commonFeatures += feature
-          }
-        }
-        log.info(s"Common features : $commonFeatures")
-        log.info(s"Rare features : $rareFeatures")
-        FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
-          docHitsStream =>
+              val firstSlash = file.indexOf("/")
+              val secondSlash = file.indexOf("/", firstSlash + 1)
 
-            // from the stream of documents
-            val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+              val owner = file.substring(0, firstSlash)
+              val repo = file.substring(firstSlash + 1, secondSlash)
+              val path = file.substring(secondSlash + 1)
 
-            println("done searching db! (millis=" + System.currentTimeMillis + ")")
-            SearchResultSuccess(results.drop(from).toSeq, count)
+              val finalFeatures = hits.map(e =>
+                new Feature(CodePiecePosition(CodeFileLocation("dummy_user", "dummy_repo", "dummy_file"), e.line)) {
+                  def key = e.feature
+                  override def toString = "Feature(" + key + ")"
+                }
+              ).toList.toSet
 
-        }.recover({
+              SearchResultEntry(owner, repo, path, (center-std).toInt, (center+std).toInt, score, Map[String, Double](), Set())
+          }.toList.toSeq, 12)
 
-          // in case of error send the stack trace to the merger
-          case e =>
-            val baos = new ByteArrayOutputStream()
-            val ps = new PrintStream(baos)
-            e.printStackTrace(ps)
-            ps.flush()
-            SearchResultError(baos.toString("UTF-8"))
-        })
-      }
-    } yield matches
+      }.recover({
+
+        // in case of error send the stack trace to the merger
+        case e =>
+          val baos = new ByteArrayOutputStream()
+          val ps = new PrintStream(baos)
+          e.printStackTrace(ps)
+          ps.flush()
+          SearchResultError(baos.toString("UTF-8"))
+      })
+
+
+//      .recover({
+//
+//        // in case of error send the stack trace to the merger
+//        case e =>
+//          val baos = new ByteArrayOutputStream()
+//          val ps = new PrintStream(baos)
+//          e.printStackTrace(ps)
+//          ps.flush()
+//          SearchResultError(baos.toString("UTF-8"))
+//      })
+
+
+//    for {
+//      localFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.LOCAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "local occs")
+//      globalFeatureLangOccs <- TimedFuture(FeatureDB.getFeatureOccurrenceCount(FeatureDB.GLOBAL_OCCURENCES_COLLECTION_NAME, features, Set()), name = "global occs")
+//      matches <- {
+//
+//        // get count of features that match this request locally
+//        val localFeatureOccs = localFeatureLangOccs.groupBy(_._1._1).mapValues(_.foldLeft(0L)((x,entry) => x + entry._2))
+//
+//        // sort features in order of increasing count (in the local database)
+//        val sortedFeatures = features.toList.sortBy(f => localFeatureOccs.get(f).getOrElse(noCountDefaultValue))
+//
+//        // smallest feature must be rare even if there are too many occurrences because `rareFeatures` must be nonempty
+//        var resCount: Long = 0L
+//        var rareFeatures: Set[String] = Set()
+//        var commonFeatures: Set[String] = Set()
+//        log.info(s" Sorted features $sortedFeatures")
+//        log.info(s" Local counts $localFeatureOccs")
+//
+//        for (feature <- sortedFeatures) {
+//          if (resCount + localFeatureOccs.get(feature).getOrElse(0L) <= STAGE_1_LIMIT) {
+//            resCount += localFeatureOccs.get(feature).getOrElse(0L)
+//            rareFeatures += feature
+//          } else {
+//            commonFeatures += feature
+//          }
+//        }
+//        log.info(s"Common features : $commonFeatures")
+//        log.info(s"Rare features : $rareFeatures")
+//        FeatureDB.getMatchesFromDb(rareFeatures, commonFeatures, languages).map {
+//          docHitsStream =>
+//
+//            // from the stream of documents
+//            val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+//
+//            println("done searching db! (millis=" + System.currentTimeMillis + ")")
+//            SearchResultSuccess(results.drop(from).toSeq, count)
+//
+//        }.recover({
+//
+//          // in case of error send the stack trace to the merger
+//          case e =>
+//            val baos = new ByteArrayOutputStream()
+//            val ps = new PrintStream(baos)
+//            e.printStackTrace(ps)
+//            ps.flush()
+//            SearchResultError(baos.toString("UTF-8"))
+//        })
+//      }
+//    } yield matches
   }
 
   def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x

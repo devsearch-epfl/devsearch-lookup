@@ -20,6 +20,7 @@ class LookupMerger(
 
     case SearchResultSuccess(partitionResult, count) =>
       log.info("LookupMerger: receive SearchResultSuccess (millis=" + System.currentTimeMillis + ")")
+      log.info(partitionResult.toString)
       results ++= partitionResult
       nResponses += 1
       totalCount += count
