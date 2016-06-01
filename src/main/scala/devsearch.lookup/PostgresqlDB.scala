@@ -7,6 +7,8 @@ import scala.concurrent.{ExecutionContext, Future}
 object PostgresqlDB {
 
   val db_protocol = "postgresql"
+
+  //  TODO: sent those parameters to config files
   val db_host = "localhost"
   val db_port = 5432
   val db_name = "matt"
@@ -15,11 +17,12 @@ object PostgresqlDB {
   val db_url = "jdbc:" + db_protocol + "://" + db_host + ":" + db_port + "/" + db_name
 
   // lazy load the db
+  // Note: passwords are not needed at the moment, we do not store sensitive information
   def db: Connection = DriverManager.getConnection(db_url)
 
   def fullQuery(features: Set[String], languages: Set[String], len: Int, from: Int): String = {
 
-//    TODO: filter string to escape forbidden characters
+    // TODO: filter string to escape forbidden characters
     val feature_list: String = features.map("\'" + _ + "\'").mkString(",")
 
     f"""
@@ -87,14 +90,14 @@ object PostgresqlDB {
           // TODO: replace Hardcoded keys
           val filePath = rs.getString("file")
 
-//          extract user and repo from filePath
+          // extract user and repo from filePath
           val firstSlash = filePath.indexOf("/")
           val secondSlash = filePath.indexOf("/", firstSlash + 1)
 
           val user = filePath.substring(0, firstSlash)
           val repo = filePath.substring(firstSlash + 1, secondSlash)
           val path = filePath.substring(secondSlash + 1)
-          
+
 
           val start = rs.getInt("start")
           val end = rs.getInt("end")
@@ -105,7 +108,8 @@ object PostgresqlDB {
             "repoRank" -> rs.getDouble("reporank")
           )
 
-          results += SearchResultEntry(user, repo, path, start, end, score, scoreBreakDown, Set())
+          // TODO: remove when intervals are more meaningfull
+          results += SearchResultEntry(user, repo, path, start, Math.min(end, start + 10), score, scoreBreakDown, Set())
         }
 
 

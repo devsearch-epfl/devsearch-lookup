@@ -39,7 +39,10 @@ class PartitionLookup() extends Actor with ActorLogging {
   def rarityWeightFunction(x: Long): Double = 1/(1+Math.exp((Math.sqrt(x)-20)/10))
 
   def getFeaturesAndScores_postgres(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
-    return ???
+
+//    Send query to Postgresql module
+    TimedFuture(PostgresqlDB.findBestFileMatches(features, languages, len, from), name = "Postgresql Query")
+
   }
 
   def getFeaturesAndScores_mongo(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
