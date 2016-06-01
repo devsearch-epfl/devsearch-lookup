@@ -19,11 +19,15 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
+
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
   "com.github.scopt" %% "scopt" % "3.3.0",
-  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23"
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
+
+  // http://mvnrepository.com/artifact/org.postgresql/postgresql
+  "org.postgresql" % "postgresql" % "9.4.1208.jre7"
 )
 
 

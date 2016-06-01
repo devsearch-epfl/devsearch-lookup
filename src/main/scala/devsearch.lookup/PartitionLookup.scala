@@ -27,12 +27,22 @@ class PartitionLookup() extends Actor with ActorLogging {
     case SearchRequest(features, lang, start, len) =>
       log.info("PartitionLookup: receive SearchRequest starting local partition lookup (millis=" + System.currentTimeMillis + ")")
 
-      getFeaturesAndScores(features.map(_.key), lang, len, start) pipeTo sender
+      getFeaturesAndScores_postgres(features.map(_.key), lang, len, start) pipeTo sender
+
+//      getFeaturesAndScores_mongo(features.map(_.key), lang, len, start) pipeTo sender
 
     case x => log.error(s"Received unexpected message $x")
   }
 
-  def getFeaturesAndScores(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
+  def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
+
+  def rarityWeightFunction(x: Long): Double = 1/(1+Math.exp((Math.sqrt(x)-20)/10))
+
+  def getFeaturesAndScores_postgres(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
+    return ???
+  }
+
+  def getFeaturesAndScores_mongo(features: Set[String], languages: Set[String], len: Int, from: Int): Future[SearchResult] = {
     if (features.isEmpty) return Future(SearchResultError("feature set is empty"))
 
     for {
@@ -67,7 +77,7 @@ class PartitionLookup() extends Actor with ActorLogging {
           docHitsStream =>
 
             // from the stream of documents
-            val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores(_, features, globalFeatureLangOccs)), _.score, from+len)
+            val (results, count) = FindNBest[SearchResultEntry](docHitsStream.flatMap(getScores_mongo(_, features, globalFeatureLangOccs)), _.score, from+len)
 
             println("done searching db! (millis=" + System.currentTimeMillis + ")")
             SearchResultSuccess(results.drop(from).toSeq, count)
@@ -86,11 +96,7 @@ class PartitionLookup() extends Actor with ActorLogging {
     } yield matches
   }
 
-  def clamp(x: Double, min: Double, max: Double): Double = if (x < min) min else if (x > max) max else x
-
-  def rarityWeightFunction(x: Long): Double = 1/(1+Math.exp((Math.sqrt(x)-20)/10))
-
-  def getScores(entry: DocumentHits, features: Set[String], featureLangOccs: Map[(String,String), Long]): Iterable[SearchResultEntry] = entry match {
+  def getScores_mongo(entry: DocumentHits, features: Set[String], featureLangOccs: Map[(String,String), Long]): Iterable[SearchResultEntry] = entry match {
 
     case DocumentHits(location, repoRank, streamOfHits) => {
 
