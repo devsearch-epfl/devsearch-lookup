@@ -6,9 +6,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object PostgresqlDB {
 
+  val FILE_PATH_KEY = "filePath"
+  val CLUSTER_START_KEY = "clusterStart"
+  val CLUSTER_END_KEY = "clusterStart"
+  val SCORE_KEY = "score"
+  val SIZE_SCORE_KEY = "sizeScore"
+  val REPORANK_SCORE_KEY = "reporank"
+
   val db_protocol = "postgresql"
 
-  //  TODO: sent those parameters to config files
+  //  TODO: set those parameters in config files
   val db_host = "localhost"
   val db_port = 5432
   val db_name = "matt"
@@ -27,25 +34,27 @@ object PostgresqlDB {
 
     f"""
         |SELECT * FROM (
-        |	SELECT file,
-        |	size,
-        |	reporank,
-        |	(size*0.4)+(reporank*0.4) AS score,
-        |	maxline AS end,
-        |	minline AS start
+        |	SELECT
+        | $FILE_PATH_KEY%s,
+        |	(size*0.4)+(reporank*0.4) AS $SCORE_KEY%s,
+        |	$CLUSTER_START_KEY%s,
+        | $CLUSTER_END_KEY%s,
+        | $SIZE_SCORE_KEY%s,
+        | $REPORANK_SCORE_KEY%s
         |		FROM (
-        |		    SELECT file,
-        |		        clamp(size, 0, 100)/100 as size,
-        |		        reporank,
-        |		        minLine,
-        |		        maxLine
+        |		    SELECT
+        |           $FILE_PATH_KEY%s,
+        |		        clamp(size, 0, 100)/100 AS $SIZE_SCORE_KEY%s,
+        |		        $REPORANK_SCORE_KEY%s,
+        |		        $CLUSTER_START_KEY%s,
+        |		        $CLUSTER_END_KEY%s
         |		    FROM (
         |		        SELECT
-        |		            file,
-        |		            count(*) as size,
-        |		            max(reporank) as reporank,
-        |		            min(line) AS minLine,
-        |		            max(line) AS maxLine
+        |		            file AS $FILE_PATH_KEY%s,
+        |		            count(*) AS size,
+        |		            max(reporank) AS $REPORANK_SCORE_KEY%s,
+        |		            min(line) AS $CLUSTER_START_KEY%s,
+        |		            max(line) AS $CLUSTER_END_KEY%s
         |		        FROM devsearch_features
         |		        WHERE feature IN ($feature_list%s)
         |		        GROUP BY file
@@ -87,7 +96,6 @@ object PostgresqlDB {
         // TODO: Find a more "scala" way to eat results
         while (rs.next) {
 
-          // TODO: replace Hardcoded keys
           val filePath = rs.getString("file")
 
           // extract user and repo from filePath
@@ -99,13 +107,14 @@ object PostgresqlDB {
           val path = filePath.substring(secondSlash + 1)
 
 
-          val start = rs.getInt("start")
-          val end = rs.getInt("end")
-          val score = rs.getFloat("score")
+          val start = rs.getInt(CLUSTER_START_KEY)
+          val end = rs.getInt(CLUSTER_END_KEY)
+          val score = rs.getFloat(SCORE_KEY)
 
           val scoreBreakDown: Map[String, Double] = Map(
-            "sizeScore" -> rs.getDouble("size"),
-            "repoRank" -> rs.getDouble("reporank")
+            "final" ->  score,
+            "size" -> 0.4 * rs.getDouble(SIZE_SCORE_KEY),
+            "repoRank" -> 0.4 * rs.getDouble(REPORANK_SCORE_KEY)
           )
 
           // TODO: remove when intervals are more meaningfull
