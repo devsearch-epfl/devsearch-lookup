@@ -6,12 +6,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object PostgresqlDB {
 
-  val FILE_PATH_KEY = "filePath"
-  val CLUSTER_START_KEY = "clusterStart"
-  val CLUSTER_END_KEY = "clusterStart"
+  val FILE_PATH_KEY = "file_path"
+  val CLUSTER_START_KEY = "cluster_start"
+  val CLUSTER_END_KEY = "cluster_end"
   val SCORE_KEY = "score"
-  val SIZE_SCORE_KEY = "sizeScore"
-  val REPORANK_SCORE_KEY = "reporank"
+  val SIZE_SCORE_KEY = "size_score"
+  val REPORANK_SCORE_KEY = "repo_rank"
 
   val db_protocol = "postgresql"
 
@@ -32,37 +32,73 @@ object PostgresqlDB {
     // TODO: filter string to escape forbidden characters
     val feature_list: String = features.map("\'" + _ + "\'").mkString(",")
 
+//    f"""
+//        |SELECT * FROM (
+//        |	SELECT
+//        | $FILE_PATH_KEY%s,
+//        |	($SIZE_SCORE_KEY%s*0.4)+($REPORANK_SCORE_KEY%s*0.4) AS $SCORE_KEY%s,
+//        |	$CLUSTER_START_KEY%s,
+//        | $CLUSTER_END_KEY%s,
+//        | $SIZE_SCORE_KEY%s,
+//        | $REPORANK_SCORE_KEY%s
+//        |		FROM (
+//        |		    SELECT
+//        |           $FILE_PATH_KEY%s,
+//        |		        clamp(size, 0, 100)/100 AS $SIZE_SCORE_KEY%s,
+//        |		        $REPORANK_SCORE_KEY%s,
+//        |		        $CLUSTER_START_KEY%s,
+//        |		        $CLUSTER_END_KEY%s
+//        |		    FROM (
+//        |		        SELECT
+//        |		            file AS $FILE_PATH_KEY%s,
+//        |		            count(*) AS size,
+//        |		            max(reporank) AS $REPORANK_SCORE_KEY%s,
+//        |		            min(line) AS $CLUSTER_START_KEY%s,
+//        |		            max(line) AS $CLUSTER_END_KEY%s
+//        |		        FROM devsearch_features
+//        |		        WHERE feature IN ($feature_list%s)
+//        |		        GROUP BY file
+//        |		        ) AS result
+//        |		    ) AS scoring
+//        |		) AS sorting ORDER BY score DESC
+//        |LIMIT $len%d OFFSET $from%d
+//      """.stripMargin
+
     f"""
-        |SELECT * FROM (
-        |	SELECT
-        | $FILE_PATH_KEY%s,
-        |	(size*0.4)+(reporank*0.4) AS $SCORE_KEY%s,
-        |	$CLUSTER_START_KEY%s,
-        | $CLUSTER_END_KEY%s,
-        | $SIZE_SCORE_KEY%s,
-        | $REPORANK_SCORE_KEY%s
-        |		FROM (
-        |		    SELECT
-        |           $FILE_PATH_KEY%s,
-        |		        clamp(size, 0, 100)/100 AS $SIZE_SCORE_KEY%s,
-        |		        $REPORANK_SCORE_KEY%s,
-        |		        $CLUSTER_START_KEY%s,
-        |		        $CLUSTER_END_KEY%s
-        |		    FROM (
-        |		        SELECT
-        |		            file AS $FILE_PATH_KEY%s,
-        |		            count(*) AS size,
-        |		            max(reporank) AS $REPORANK_SCORE_KEY%s,
-        |		            min(line) AS $CLUSTER_START_KEY%s,
-        |		            max(line) AS $CLUSTER_END_KEY%s
-        |		        FROM devsearch_features
-        |		        WHERE feature IN ($feature_list%s)
-        |		        GROUP BY file
-        |		        ) AS result
-        |		    ) AS scoring
-        |		) AS sorting ORDER BY score DESC
-        |LIMIT $len%d OFFSET $from%d
-      """.stripMargin
+       |SELECT
+       |    files.file as $FILE_PATH_KEY%s,
+       |    $SIZE_SCORE_KEY%s,
+       |    $REPORANK_SCORE_KEY%s,
+       |    $SCORE_KEY%s,
+       |    $CLUSTER_END_KEY%s,
+       |    $CLUSTER_START_KEY%s
+       |FROM (
+       |    SELECT * FROM (
+       |        SELECT
+       |            file,
+       |            $SIZE_SCORE_KEY%s,
+       |            $REPORANK_SCORE_KEY%s,
+       |            ($SIZE_SCORE_KEY%s*0.4)+($REPORANK_SCORE_KEY%s*0.4) AS $SCORE_KEY%s,
+       |            $CLUSTER_END_KEY%s,
+       |            $CLUSTER_START_KEY%s
+       |        FROM (
+       |            SELECT
+       |                file,
+       |                clamp(count(*), 0, 100)/100 as $SIZE_SCORE_KEY%s,
+       |                max(reporank) as $REPORANK_SCORE_KEY%s,
+       |                min(line) AS $CLUSTER_END_KEY%s,
+       |                max(line) AS $CLUSTER_START_KEY%s
+       |            FROM data, features
+       |            WHERE data.feature = features.id  AND features.feature IN ($feature_list%s)
+       |            GROUP BY file
+       |        ) AS scoring
+       |    ) AS sorting
+       |    ORDER BY score DESC
+       |    LIMIT $len%d
+       |    OFFSET $from%d
+       |) as results, files
+       |WHERE files.ID = results.file
+     """.stripMargin
   }
 
   def simpleQuery() = {
@@ -82,13 +118,15 @@ object PostgresqlDB {
 
   def findBestFileMatches(features: Set[String], languages: Set[String], len: Int, from: Int)(implicit ec: ExecutionContext): Future[SearchResult] = {
 
+    val finalQuery: String = fullQuery(features, languages, len, from)
+
     Future {
       try {
         // Configure to be Read Only
         val statement = db.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
 
         // Execute Query
-        val rs: ResultSet = statement.executeQuery(fullQuery(features, languages, len, from))
+        val rs: ResultSet = statement.executeQuery(finalQuery)
 
         var results: Set[SearchResultEntry] = Set()
 
@@ -96,7 +134,7 @@ object PostgresqlDB {
         // TODO: Find a more "scala" way to eat results
         while (rs.next) {
 
-          val filePath = rs.getString("file")
+          val filePath = rs.getString(FILE_PATH_KEY)
 
           // extract user and repo from filePath
           val firstSlash = filePath.indexOf("/")
@@ -127,7 +165,9 @@ object PostgresqlDB {
 
       } catch  {
         case e: Exception=>
-          SearchResultError("Exception on the query" + e.getCause + "\n" + e.getStackTrace)
+          e.printStackTrace()
+          println(finalQuery);
+          SearchResultError("Exception on the query " + e.getCause + " \n ")
       }
     }
   }
