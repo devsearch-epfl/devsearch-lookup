@@ -86,8 +86,8 @@ object PostgresqlDB {
        |                file,
        |                clamp(count(*), 0, 100)/100 as $SIZE_SCORE_KEY%s,
        |                max(reporank) as $REPORANK_SCORE_KEY%s,
-       |                min(line) AS $CLUSTER_END_KEY%s,
-       |                max(line) AS $CLUSTER_START_KEY%s
+       |                min(line) AS $CLUSTER_START_KEY%s,
+       |                max(line) AS $CLUSTER_END_KEY%s
        |            FROM data, features
        |            WHERE data.feature = features.id  AND features.feature IN ($feature_list%s)
        |            GROUP BY file
