@@ -12,6 +12,7 @@ object PostgresqlDB {
   val SCORE_KEY = "score"
   val SIZE_SCORE_KEY = "size_score"
   val REPORANK_SCORE_KEY = "repo_rank"
+  val TOTAL_COUNT_KEY = "count"
 
   val db_protocol = "postgresql"
 
@@ -71,9 +72,11 @@ object PostgresqlDB {
        |    $REPORANK_SCORE_KEY%s,
        |    $SCORE_KEY%s,
        |    $CLUSTER_END_KEY%s,
-       |    $CLUSTER_START_KEY%s
+       |    $CLUSTER_START_KEY%s,
+       |    $TOTAL_COUNT_KEY%s
+       |
        |FROM (
-       |    SELECT * FROM (
+       |    SELECT * , count(*) OVER() AS $TOTAL_COUNT_KEY%s FROM (
        |        SELECT
        |            file,
        |            $SIZE_SCORE_KEY%s,
@@ -130,6 +133,9 @@ object PostgresqlDB {
 
         var results: Set[SearchResultEntry] = Set()
 
+        // total number of files matched
+        var total = 0
+
         // Iterate Over returned results
         // TODO: Find a more "scala" way to eat results
         while (rs.next) {
@@ -149,6 +155,8 @@ object PostgresqlDB {
           val end = rs.getInt(CLUSTER_END_KEY)
           val score = rs.getFloat(SCORE_KEY)
 
+          total = rs.getInt(TOTAL_COUNT_KEY)
+
           val scoreBreakDown: Map[String, Double] = Map(
             "final" ->  score,
             "size" -> 0.4 * rs.getDouble(SIZE_SCORE_KEY),
@@ -164,7 +172,7 @@ object PostgresqlDB {
 
 
         // TODO: get the actual count of results
-        SearchResultSuccess(results.toSeq, 10);
+        SearchResultSuccess(results.toSeq, total);
 
       } catch  {
         case e: Exception=>
