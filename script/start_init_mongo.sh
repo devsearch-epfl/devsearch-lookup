@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Db startup script for azure D11_v2 vms
+# MongoDb startup script for azure D11_v2 vms
 
 set -e
 
@@ -16,4 +16,4 @@ mongo --eval "db.features.createIndex( { file: 1 } )" devsearch
 mongo --eval "db.global_occ.createIndex( { feature: 1 } )" devsearch
 mongo --eval "db.local_occ.createIndex( { feature: 1 } )" devsearch
 
-echo '*** Database is filled and indexed ***'
+echo '*** MongoDB is started, filled and indexed ***'
