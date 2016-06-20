@@ -5,7 +5,7 @@
 set -e
 
 # prepare folder to accept files from DATA servers
-mkdir bucket-data
+mkdir -p bucket-data
 
 sudo apt-get update
 sudo apt-get install -y git

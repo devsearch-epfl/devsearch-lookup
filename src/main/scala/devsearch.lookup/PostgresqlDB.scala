@@ -18,7 +18,7 @@ object PostgresqlDB {
   //  TODO: set those parameters in config files
   val db_host = "localhost"
   val db_port = 5432
-  val db_name = "matt"
+  val db_name = "devsearch"
 
   // url to connect to database
   val db_url = "jdbc:" + db_protocol + "://" + db_host + ":" + db_port + "/" + db_name
