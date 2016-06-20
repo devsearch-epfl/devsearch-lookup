@@ -152,7 +152,10 @@ object PostgresqlDB {
           val scoreBreakDown: Map[String, Double] = Map(
             "final" ->  score,
             "size" -> 0.4 * rs.getDouble(SIZE_SCORE_KEY),
-            "repoRank" -> 0.4 * rs.getDouble(REPORANK_SCORE_KEY)
+            "repoRank" -> 0.4 * rs.getDouble(REPORANK_SCORE_KEY),
+            "density" -> 0.0,
+            "rarity" -> 0.0,
+            "ratioOfMatches" -> 0.0
           )
 
           // TODO: remove when intervals are more meaningfull
