@@ -166,8 +166,8 @@ object PostgresqlDB {
       } catch  {
         case e: Exception=>
           e.printStackTrace()
-          println(finalQuery);
-          SearchResultError("Exception on the query " + e.getCause + " \n ")
+          println(finalQuery)
+          SearchResultError("Exception on the query " + e + " \n ")
       }
     }
   }
