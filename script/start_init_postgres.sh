@@ -9,7 +9,7 @@ sudo service postgresql stop
 
 
 # create directory where the db will lie
-db_path="/mnt/var/postgresql/devsearch/"
+db_path="/var/postgresql/devsearch/"
 sudo rm -rf ${db_path}
 sudo mkdir -p ${db_path}
 sudo chown postgres:postgres ${db_path}
