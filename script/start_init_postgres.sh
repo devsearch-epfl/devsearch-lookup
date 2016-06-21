@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# MongoDb startup script for azure D11_v2 vms
+# PostgreSQL startup script for azure D11_v2 vms
 
 set -e
 
